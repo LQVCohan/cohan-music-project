@@ -740,10 +740,19 @@
 
   const LAST_FOLDER_KEY = "musicbox:lastPersistentFolder";
 
+  function normalizeStoredFolderLabel(label){
+    const raw = String(label || "").trim();
+    if (!raw) return "";
+    const unified = raw.replace(/\\+/g, "/");
+    const parts = unified.split("/").filter(Boolean);
+    return parts[parts.length-1] || raw;
+  }
+
   function saveLastPersistentFolderInfo(info){
     try{
       const payload = {
-        label: info?.label || "",
+        label: normalizeStoredFolderLabel(info?.label || ""),
+        rawPath: String(info?.rawPath || "").trim(),
         libId: info?.libId || "",
         connectedAt: Date.now()
       };
@@ -754,21 +763,28 @@
   function readLastPersistentFolderInfo(){
     try{
       const raw = localStorage.getItem(LAST_FOLDER_KEY);
-      if (!raw) return {label:"", libId:""};
+      if (!raw) return {label:"", rawPath:"", libId:""};
       try{
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === "object"){
+          const rawPath = typeof parsed.rawPath === "string" ? parsed.rawPath.trim() : "";
+          const parsedLabel = typeof parsed.label === "string" ? parsed.label : "";
           return {
-            label: typeof parsed.label === "string" ? parsed.label : "",
+            label: normalizeStoredFolderLabel(parsedLabel || rawPath),
+            rawPath,
             libId: typeof parsed.libId === "string" ? parsed.libId : ""
           };
         }
       } catch {
-        // backward compatible with old format: plain text folder name
-        return {label: raw, libId: ""};
+        // backward compatible with old format: plain text folder name or absolute path
+        return {
+          label: normalizeStoredFolderLabel(raw),
+          rawPath: String(raw || "").trim(),
+          libId: ""
+        };
       }
     } catch {}
-    return {label:"", libId:""};
+    return {label:"", rawPath:"", libId:""};
   }
 
   async function verifyPermission(handle, withWrite=false, request=false){
