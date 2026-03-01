@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <title>🎵 Trạm Nhạc Quán Nướng 49K</title>
+        <title>🎵 Trạm Nhạc Quán Nướng 46K</title>
         <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Ctext y=%2752%27 font-size=%2752%27%3E🎵%3C/text%3E%3C/svg%3E" />
         <style>
         :root {
@@ -126,7 +126,7 @@
         /* PLAYLIST */
         .list { height: 100%; overflow: auto; font-size: 14px; padding: 10px; }
         .row {
-            display: grid; grid-template-columns: 28px 1fr 120px 130px 40px; gap: 12px; align-items: center;
+            display: grid; grid-template-columns: 1fr 120px 28px; gap: 12px; align-items: center;
             padding: 12px 16px; border-bottom: 1px solid transparent; cursor: pointer;
             border-radius: 12px; transition: all 0.2s; margin-bottom: 4px;
         }
@@ -142,23 +142,6 @@
         .row .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
         .row .path { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .row .dur { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
-        .row .tag { font-size: 12px; text-align: right; color: var(--muted); font-family: var(--mono); }
-        .row .menuBtn {
-            border: none; background: rgba(255,255,255,0.05); color: var(--text); width: 32px; height: 32px;
-            border-radius: 10px; cursor: pointer; font-weight: bold;
-        }
-        .row .menuBtn:hover { background: rgba(255, 107, 0, 0.2); }
-
-
-        .trackMenu {
-            position: fixed; min-width: 220px; background: rgba(25, 13, 7, 0.98); border: 1px solid var(--line);
-            border-radius: 12px; box-shadow: var(--shadow); padding: 8px; z-index: 40;
-        }
-        .trackMenu button {
-            width: 100%; text-align: left; border: none; padding: 10px 12px; background: transparent; color: var(--text);
-            border-radius: 8px; cursor: pointer;
-        }
-        .trackMenu button:hover { background: rgba(255, 107, 0, 0.15); }
 
         /* ICONS */
         .ico { width: 22px; height: 22px; display: inline-grid; place-items: center; border-radius: 6px; font-size: 12px; font-weight:bold; }
@@ -265,7 +248,7 @@
                 <div class="brand">
                     <div class="brand-icon">🔥</div>
                     <div class="brand-text">
-                        <div class="brand-name">QUÁN NƯỚNG 49K</div>
+                        <div class="brand-name">QUÁN NƯỚNG 46K</div>
                         <div class="brand-sub">Premium Station</div>
                     </div>
                 </div>
@@ -564,8 +547,7 @@
     // artwork cache for current session (object URLs)
     coverUrlByKey: new Map(), // k -> objectURL
 
-    playlists: [],
-    trackMenuEl: null
+    playlists: []
   };
 
   // ====== Small utilities
@@ -755,6 +737,16 @@
 
   // ====== File System Access API (persistent)
   const hasFSA = typeof window.showDirectoryPicker === "function"; // :contentReference[oaicite:8]{index=8}
+
+  const LAST_FOLDER_KEY = "musicbox:lastPersistentFolder";
+
+  function saveLastPersistentFolderLabel(label){
+    try{ localStorage.setItem(LAST_FOLDER_KEY, label || ""); }catch{}
+  }
+
+  function readLastPersistentFolderLabel(){
+    try{ return localStorage.getItem(LAST_FOLDER_KEY) || ""; }catch{ return ""; }
+  }
 
   async function verifyPermission(handle, withWrite=false, request=false){
     // queryPermission / requestPermission. :contentReference[oaicite:9]{index=9}
@@ -1146,7 +1138,6 @@
           <div class="path" title="${escapeHtml(displaySub(t))}">${escapeHtml(displaySub(t))}</div>
         </div>
         <div class="dur">${dur}</div>
-        <button class="menuBtn" title="Thao tác bài hát" aria-label="Thao tác bài hát">⋯</button>
         ${statusIcon(t)}
       `;
       row.draggable = true;
@@ -1156,11 +1147,6 @@
       });
       row.addEventListener("click", () => {
         selectIndex(idx);
-      });
-      const menuBtn = row.querySelector('.menuBtn');
-      menuBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openTrackMenu(idx, e.clientX, e.clientY);
       });
       row.addEventListener("dblclick", () => playIndex(idx, {user:true}));
       list.appendChild(row);
@@ -1174,32 +1160,6 @@
   function revealIndex(i){
     const el = list.querySelector(`.row[data-idx="${i}"]`);
     if (el) el.scrollIntoView({block:"center", behavior:"smooth"});
-  }
-
-  function closeTrackMenu(){
-    if (state.trackMenuEl){
-      state.trackMenuEl.remove();
-      state.trackMenuEl = null;
-    }
-  }
-
-  function removeTrackFromCurrentList(idx){
-    if (idx < 0 || idx >= state.tracks.length) return;
-    const [removed] = state.tracks.splice(idx, 1);
-    if (!removed) return;
-    if (state.playingIndex === idx){
-      audio.pause();
-      audio.removeAttribute('src');
-      state.playingIndex = -1;
-      btnPlay.textContent = "▶️";
-      updateNowPlayingUI(null);
-    } else if (state.playingIndex > idx){
-      state.playingIndex -= 1;
-    }
-    if (state.selectedIndex >= state.tracks.length) state.selectedIndex = state.tracks.length - 1;
-    if (state.selectedIndex === idx) state.selectedIndex = Math.max(0, idx - 1);
-    log("info", `Đã bỏ khỏi danh sách hiện tại: ${removed.relPath}`);
-    renderList();
   }
 
   function addTrackToQuickPlaylist(idx){
@@ -1237,27 +1197,6 @@
     updateModeBadges();
     playIndex(nextIndex(), {user:true});
   }
-
-  function openTrackMenu(idx, x, y){
-    closeTrackMenu();
-    const menu = document.createElement('div');
-    menu.className = 'trackMenu';
-    menu.innerHTML = `
-      <button data-act="playlist">📌 Thêm vào playlist con</button>
-      <button data-act="play">▶️ Phát ngay</button>
-    `;
-    menu.style.left = `${Math.max(10, x - 180)}px`;
-    menu.style.top = `${Math.max(10, y + 8)}px`;
-    menu.addEventListener('click', (e) => {
-      const act = e.target?.dataset?.act;
-      if (act === 'playlist') addTrackToQuickPlaylist(idx);
-      if (act === 'play') playIndex(idx, {user:true});
-      closeTrackMenu();
-    });
-    document.body.appendChild(menu);
-    state.trackMenuEl = menu;
-  }
-
 
   // ====== Playback
   function updateModeBadges(){
@@ -1610,7 +1549,8 @@
     updateNowPlayingUI(null);
 
     if (!lib){
-      listMeta.textContent = "Chưa có";
+      const remembered = readLastPersistentFolderLabel();
+      listMeta.textContent = remembered ? `Chưa kết nối • Folder gần nhất: ${remembered}` : "Chưa có";
       scanBadge.textContent = "—";
       renderList();
       return;
@@ -1709,6 +1649,8 @@
       alert("Không lưu được folder handle để nhớ lần sau (trình duyệt hạn chế). Bạn vẫn dùng được trong phiên này.");
     }
 
+    saveLastPersistentFolderLabel(rootName);
+
     await loadLibs();
     state.currentLibId = libId;
     libSelect.value = libId;
@@ -1801,6 +1743,7 @@
     }
 
     listMeta.textContent = `Persistent: ${lib.name} • ${state.tracks.length} tracks • snapshot ${lib.snapshotHash?.slice(0,6) || "—"}`;
+    saveLastPersistentFolderLabel(lib.name || "");
     scanBadge.textContent = "Sẵn sàng";
   }
 
@@ -1941,11 +1884,6 @@
     log("info", "Đã remove library khỏi app.");
   });
 
-  document.addEventListener('click', (e) => {
-    if (!state.trackMenuEl) return;
-    if (!state.trackMenuEl.contains(e.target)) closeTrackMenu();
-  });
-
   art.addEventListener('dragover', (e) => {
     e.preventDefault();
     art.style.borderColor = 'var(--accent)';
@@ -2070,6 +2008,10 @@
     if (state.currentLibId){
       await setCurrentLib(state.currentLibId);
     } else {
+      const remembered = readLastPersistentFolderLabel();
+      if (remembered){
+        listMeta.textContent = `Chưa kết nối • Folder gần nhất: ${remembered}`;
+      }
       renderList();
     }
 
