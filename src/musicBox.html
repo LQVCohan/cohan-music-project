@@ -1,0 +1,2132 @@
+<!doctype html>
+<html lang="vi">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>Trạm Nhạc Quán Nướng 49K (Premium)</title>
+        <style>
+        :root {
+            /* BBQ Premium Theme Colors */
+            --bg: #120904;           /* Dark smoky background */
+            --panel: #1e1008;        /* Grill dark brown */
+            --panel2: #2a160d;       
+            --text: #fff3ec;         /* Warm text */
+            --muted: #b58c75;        /* Subdued text */
+            --line: #3d1c0b;         /* Dark orange-brown borders */
+            --accent: #ff6b00;       /* Fire Orange */
+            --bad: #ff4757;
+            --warn: #ffa502;
+            --ok: #2ed573;
+            --shadow: 0 12px 35px rgba(0, 0, 0, 0.5);
+            --glow: 0 0 15px rgba(255, 107, 0, 0.4);
+            --radius: 20px;
+            --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            --sans: "Inter", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; font-family: var(--sans); color: var(--text); 
+            background: radial-gradient(circle at 50% 0%, #2e1100 0%, var(--bg) 60%);
+            height: 100vh; overflow: hidden;
+        }
+        
+        /* Custom Premium Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 107, 0, 0.3); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 107, 0, 0.6); }
+
+        button, input, select { font: inherit; color: inherit; }
+        .app { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; }
+
+        /* HEADER & BRANDING */
+        header {
+            display: flex; gap: 15px; align-items: center; padding: 12px 20px;
+            border-bottom: 1px solid var(--line); 
+            background: rgba(18, 9, 4, 0.7); backdrop-filter: blur(15px);
+            flex-wrap: wrap; z-index: 10;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .brand {
+            display: flex; align-items: center; gap: 10px;
+            padding-right: 20px; border-right: 1px solid var(--line);
+        }
+        .brand-icon { font-size: 28px; filter: drop-shadow(0 0 8px var(--accent)); }
+        .brand-text { display: flex; flex-direction: column; }
+        .brand-name { font-weight: 900; font-size: 16px; color: var(--accent); letter-spacing: 1px; }
+        .brand-sub { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        header .left, header .right { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        header .spacer { flex: 1; }
+
+        /* BUTTONS */
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 10px 16px; 
+            background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+            border: 1px solid rgba(255, 107, 0, 0.2); 
+            border-radius: 14px; cursor: pointer;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 5px rgba(0,0,0,0.2);
+            user-select: none; font-weight: 500; transition: all 0.2s ease;
+        }
+        .btn:hover {
+            background: rgba(255, 107, 0, 0.1); border-color: rgba(255, 107, 0, 0.5);
+            box-shadow: var(--glow); transform: translateY(-1px);
+        }
+        .btn:active { transform: translateY(1px); }
+        .btn.primary {
+            background: linear-gradient(135deg, #ff8c00, #ff4500);
+            border: none; color: #fff; font-weight: 600;
+            box-shadow: 0 4px 15px rgba(255, 69, 0, 0.4);
+        }
+        .btn.primary:hover {
+            background: linear-gradient(135deg, #ffa500, #ff5722);
+            box-shadow: 0 6px 20px rgba(255, 69, 0, 0.6);
+        }
+
+        .pill {
+            display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px;
+            background: rgba(0,0,0,0.3); border: 1px solid var(--line); border-radius: 999px;
+        }
+        .search {
+            display: flex; align-items: center; gap: 8px; padding: 10px 16px; 
+            border-radius: 999px; background: rgba(0,0,0,0.4); 
+            border: 1px solid rgba(255, 107, 0, 0.3); min-width: 280px; flex: 1;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.5); transition: border-color 0.2s;
+        }
+        .search:focus-within { border-color: var(--accent); box-shadow: inset 0 2px 6px rgba(0,0,0,0.5), 0 0 10px var(--glow); }
+        .search input { border: none; outline: none; background: transparent; width: 100%; color: var(--text); }
+
+        /* MAIN CONTENT */
+        main { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; padding: 20px; min-height: 0; }
+        .card {
+            background: rgba(30, 16, 8, 0.6); backdrop-filter: blur(20px);
+            border: 1px solid var(--line); border-radius: var(--radius);
+            box-shadow: var(--shadow); overflow: hidden; min-height: 0;
+            display: flex; flex-direction: column;
+        }
+        .card .titlebar {
+            display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+            border-bottom: 1px solid var(--line); background: rgba(0,0,0,0.2);
+            flex-wrap: wrap;
+        }
+        .titlebar .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+        .titlebar .spacer { flex: 1; }
+
+        /* SEGMENT CONTROL */
+        .seg {
+            display: inline-flex; border: 1px solid var(--line);
+            border-radius: 999px; overflow: hidden; background: rgba(0,0,0,0.3);
+        }
+        .seg button { padding: 8px 14px; background: transparent; border: none; cursor: pointer; transition: 0.2s; }
+        .seg button.on { background: rgba(255, 107, 0, 0.2); color: var(--accent); font-weight: bold; }
+
+        /* PLAYLIST */
+        .list { height: 100%; overflow: auto; font-size: 14px; padding: 10px; }
+        .row {
+            display: grid; grid-template-columns: 28px 1fr 120px 42px; gap: 12px; align-items: center;
+            padding: 12px 16px; border-bottom: 1px solid transparent; cursor: pointer;
+            border-radius: 12px; transition: all 0.2s; margin-bottom: 4px;
+        }
+        .row:hover { background: rgba(255, 255, 255, 0.03); transform: translateX(4px); }
+        .row.sel {
+            background: linear-gradient(90deg, rgba(255, 107, 0, 0.15), transparent);
+            border-left: 3px solid var(--accent);
+        }
+        .row.playing {
+            background: linear-gradient(90deg, rgba(46, 213, 115, 0.15), transparent);
+            border-left: 3px solid var(--ok);
+        }
+        .row .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+        .row .path { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .row .dur { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+        .row .tag { font-size: 12px; text-align: right; color: var(--muted); font-family: var(--mono); }
+
+        /* ICONS */
+        .ico { width: 22px; height: 22px; display: inline-grid; place-items: center; border-radius: 6px; font-size: 12px; font-weight:bold; }
+        .ico.ok { background: rgba(46, 213, 115, 0.15); color: var(--ok); }
+        .ico.bad { background: rgba(255, 71, 87, 0.15); color: var(--bad); }
+        .ico.warn { background: rgba(255, 165, 2, 0.15); color: var(--warn); }
+
+        /* NOW PLAYING SECTION */
+        .now { display: grid; grid-template-rows: auto 1fr auto; min-height: 0; }
+        .now .body { padding: 24px; display: grid; gap: 16px; align-content: start; }
+        .art {
+            width: 100%; aspect-ratio: 1/1; border-radius: 24px;
+            border: 1px solid rgba(255, 107, 0, 0.2);
+            background: radial-gradient(circle, rgba(255, 107, 0, 0.15) 0%, rgba(0,0,0,0.4) 70%);
+            display: grid; place-items: center; color: rgba(255,255,255,.5);
+            overflow: hidden; position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6), inset 0 0 40px rgba(255,107,0,0.1);
+        }
+        .art img { width: 100%; height: 100%; object-fit: cover; display: block; animation: pulse 10s infinite alternate; }
+        @keyframes pulse { 0% { transform: scale(1); } 100% { transform: scale(1.05); } }
+        .npTitle { font-size: 22px; font-weight: 800; line-height: 1.3; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .npSub { color: var(--accent); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .kv { display: grid; grid-template-columns: 90px 1fr; gap: 10px; font-size: 13px; color: var(--muted); background: rgba(0,0,0,0.2); padding: 16px; border-radius: 12px; border: 1px solid var(--line); }
+        .kv code { font-family: var(--mono); font-size: 12px; color: #ffebcd; word-break: break-all; }
+
+        /* FOOTER & PLAYER CONTROLS */
+        footer {
+            border-top: 1px solid var(--line); padding: 16px 20px;
+            display: grid; grid-template-columns: 1fr 2fr 1fr; align-items: center; gap: 20px;
+            background: rgba(18, 9, 4, 0.85); backdrop-filter: blur(20px); z-index: 10;
+        }
+        .controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .controls .btn { padding: 0; width: 44px; height: 44px; justify-content: center; border-radius: 50%; }
+        .controls .btn.primary { width: 54px; height: 54px; font-size: 24px; }
+
+        .progress {
+            display: grid; grid-template-columns: 50px 1fr 50px; gap: 15px; align-items: center;
+            font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; font-weight: 500;
+        }
+
+        /* CUSTOM SLIDERS */
+        input[type="range"] {
+            -webkit-appearance: none; width: 100%; background: rgba(255,255,255,0.1);
+            height: 6px; border-radius: 10px; outline: none; transition: 0.2s;
+        }
+        input[type="range"]:hover { background: rgba(255, 107, 0, 0.2); }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px;
+            background: var(--accent); border-radius: 50%; cursor: pointer;
+            box-shadow: 0 0 10px var(--accent); transition: transform 0.1s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+        .vol { display: flex; justify-content: flex-end; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; }
+        .badge { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: rgba(0,0,0,0.4); font-size: 12px; font-weight: 600; color: var(--accent); }
+        .banner { width: 100%; padding: 12px 16px; border: 1px solid rgba(255, 165, 2, 0.3); background: rgba(255, 165, 2, 0.1); border-radius: 14px; color: #fff; font-size: 13px; }
+
+        /* DIALOGS */
+        dialog {
+            border: 1px solid var(--line); border-radius: 20px; padding: 0; 
+            background: rgba(20, 10, 5, 0.95); backdrop-filter: blur(20px);
+            color: var(--text); box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            max-width: min(900px, 94vw);
+        }
+        dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+        .dlgHead { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,0.02); }
+        .dlgBody { padding: 20px; }
+        .logBox {
+            height: min(50vh, 500px); overflow: auto; background: rgba(0,0,0,0.4);
+            border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+            font-family: var(--mono); font-size: 13px; line-height: 1.6; white-space: pre-wrap;
+        }
+        .muted { color: var(--muted); }
+        .tiny { font-size: 12px; }
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .chips { display: flex; gap: 10px; flex-wrap: wrap; }
+        .chip {
+            padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); 
+            background: rgba(0,0,0,0.2); color: var(--muted); font-size: 12px; cursor: pointer; user-select: none; transition: 0.2s;
+        }
+        .chip.on { border-color: var(--accent); background: rgba(255, 107, 0, 0.15); color: #fff; font-weight: bold; }
+
+        @media (max-width: 980px){
+            main { grid-template-columns: 1fr; }
+            footer { grid-template-columns: 1fr; gap: 15px; }
+            .progress { grid-template-columns: 50px 1fr 50px; }
+            .vol { justify-content: center; }
+            .search { min-width: 100%; }
+        }
+    </style>
+    </head>
+
+    <body>
+        <div class="app">
+            <header>
+                <div class="brand">
+                    <div class="brand-icon">🔥</div>
+                    <div class="brand-text">
+                        <div class="brand-name">QUÁN NƯỚNG 49K</div>
+                        <div class="brand-sub">Premium Station</div>
+                    </div>
+                </div>
+
+                <div class="left">
+                    <button class="btn primary" id="btnConnect">🔗 Connect
+                        Folder (Persistent)</button>
+                    <button class="btn" id="btnImport">📁 Import Folder
+                        (Portable)</button>
+                    <button class="btn" id="btnImportFiles">➕ Add Files</button>
+                    <button class="btn" id="btnRescan"
+                        title="Chỉ kiểm tra lại những file thay đổi">🔎 Re-scan
+                        changed</button>
+
+                    <span class="pill">
+                        <span class="muted tiny">Library</span>
+                        <select id="libSelect"
+                            style="background:transparent;border:none;outline:none;color:var(--text);max-width:320px">
+                            <option value>(chưa có)</option>
+                        </select>
+                    </span>
+
+                    <button class="btn" id="btnReconnect" style="display:none">✅
+                        Reconnect</button>
+                </div>
+
+                <div class="spacer"></div>
+
+                <div class="search" title="Ctrl/⌘+F để focus">
+                    🔎 <input id="q"
+                        placeholder="Tìm title / artist / album / path..."
+                        autocomplete="off" />
+                    <span class="muted tiny" id="qCount"></span>
+                </div>
+
+                <div class="right">
+                    <span class="seg" title="S: Shuffle | R: Repeat">
+                        <button id="btnShuffle">Shuffle: Off</button>
+                        <button id="btnRepeat">Repeat: Off</button>
+                    </span>
+                    <button class="btn" id="btnLog">🧾 Log</button>
+                    <button class="btn" id="btnHelp">? Phím tắt</button>
+                </div>
+
+                <div id="compatBanner" class="banner"
+                    style="display:none"></div>
+
+                <input id="folderPicker" type="file" webkitdirectory multiple
+                    style="display:none" />
+                <input id="filePicker" type="file" multiple accept="audio/*"
+                    style="display:none" />
+            </header>
+
+            <main>
+                <section class="card">
+                    <div class="titlebar">
+                        <div>
+                            <div
+                                style="font-weight:800; color: #fff; font-size: 16px;">Danh
+                                sách bài hát</div>
+                            <div class="meta" id="listMeta">Chưa import</div>
+                        </div>
+
+                        <div class="spacer"></div>
+
+                        <div class="chips"
+                            title="Các lựa chọn scan (lưu trong cache)">
+                            <span class="chip on" id="chipDuration">Scan
+                                duration</span>
+                            <span class="chip on" id="chipTags">Scan tags</span>
+                            <span class="chip" id="chipDeep">Deep decode
+                                check</span>
+                        </div>
+
+                        <span class="badge" id="scanBadge">—</span>
+                    </div>
+                    <div class="list" id="list" tabindex="0"
+                        aria-label="Playlist"></div>
+                </section>
+
+                <section class="card now">
+                    <div class="titlebar">
+                        <div
+                            style="font-weight:800; color: #fff; font-size: 16px;">Now
+                            Playing</div>
+                        <div class="spacer"></div>
+                        <span class="badge" id="modeBadge">—</span>
+                    </div>
+
+                    <div class="body">
+                        <div class="art" id="art">
+                            <div style="text-align:center" id="artHint">
+                                <div
+                                    style="font-size: 32px; margin-bottom: 10px;">🥩</div>
+                                <div style="font-weight: 600; color: #fff;">Chưa
+                                    có bài hát</div>
+                                <div><small>Kéo thả nhạc vào lò nướng
+                                        nào!</small></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="npTitle" id="npTitle">—</div>
+                            <div class="npSub" id="npSub">—</div>
+                        </div>
+
+                        <div class="kv">
+                            <div>Trạng thái</div><div><code
+                                    id="npStatus">—</code></div>
+                            <div>Đường dẫn</div><div><code
+                                    id="npPath">—</code></div>
+                            <div>Gợi ý</div><div><code
+                                    id="npHint">—</code></div>
+                        </div>
+
+                        <div class="tiny muted"
+                            style="text-align:center; padding-top:5px;">
+                            Mẹo: `Enter` để phát bài đang chọn, `↑/↓` để di
+                            chuyển, `Space` play/pause.
+                        </div>
+                    </div>
+
+                    <div
+                        style="padding:16px; border-top:1px solid rgba(255,255,255,.05); display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+                        <button class="btn" id="btnRevealCurrent"
+                            title="Cuộn danh sách đến bài đang phát">🎯 Focus
+                            current</button>
+                        <button class="btn" id="btnClearCache"
+                            title="Xóa cache kiểm tra + metadata (không xóa nhạc)">🧹
+                            Clear cache</button>
+                        <button class="btn" id="btnClearLib"
+                            title="Xóa library khỏi app (không xóa file trên máy)">🗑️
+                            Remove library</button>
+                    </div>
+                </section>
+            </main>
+
+            <footer>
+                <div class="controls">
+                    <button class="btn" id="btnPrev"
+                        title="P: Previous">⏮</button>
+                    <button class="btn primary" id="btnPlay"
+                        title="Space: Play/Pause">▶️</button>
+                    <button class="btn" id="btnNext" title="N: Next">⏭</button>
+                    <button class="btn" id="btnMute" title="M: Mute">🔈</button>
+                </div>
+
+                <div class="progress">
+                    <div id="tCur">00:00</div>
+                    <input id="seek" type="range" min="0" max="1000"
+                        value="0" />
+                    <div id="tDur">00:00</div>
+                </div>
+
+                <div class="vol">
+                    <span class="muted tiny">Vol</span>
+                    <input id="vol" type="range" min="0" max="1" step="0.01"
+                        value="0.9" style="max-width:180px" />
+                    <span class="badge" id="volBadge">90%</span>
+                </div>
+            </footer>
+        </div>
+
+        <dialog id="dlgLog">
+            <div class="dlgHead">
+                <strong>🧾 Log / Nhật ký</strong>
+                <span class="muted tiny">— lỗi, cảnh báo, thao tác</span>
+                <div class="spacer"></div>
+                <button class="btn" id="btnCopyLog">📋 Copy</button>
+                <button class="btn" id="btnClearLog">🧽 Clear</button>
+                <button class="btn" id="btnCloseLog">✖</button>
+            </div>
+            <div class="dlgBody">
+                <div class="logBox" id="logBox"></div>
+                <div class="tiny muted" style="margin-top:8px">
+                    Lỗi phát sẽ phân loại theo
+                    <code>MediaError.code/message</code>.
+                </div>
+            </div>
+        </dialog>
+
+        <dialog id="dlgHelp">
+            <div class="dlgHead">
+                <strong>❓ Phím tắt</strong>
+                <div class="spacer"></div>
+                <button class="btn" id="btnCloseHelp">✖</button>
+            </div>
+            <div class="dlgBody">
+                <div class="grid2">
+                    <div>
+                        <div class="muted tiny"
+                            style="margin-bottom:8px;">Playback</div>
+                        <div class="logBox" style="height:auto">
+                            Space : Play / Pause
+                            N : Next
+                            P : Previous
+                            S : Toggle Shuffle
+                            R : Cycle Repeat (Off → All → One)
+                            M : Mute
+                            ← / → : Seek -5s / +5s
+                            ↑ / ↓ : Chọn bài trong danh sách
+                            Enter : Phát bài đang chọn
+                            Esc : Bỏ focus search / đóng dialog
+                        </div>
+                    </div>
+                    <div>
+                        <div class="muted tiny"
+                            style="margin-bottom:8px;">Library / UI</div>
+                        <div class="logBox" style="height:auto">
+                            Ctrl/⌘ + O : Import folder (portable)
+                            Ctrl/⌘ + K : Connect folder (persistent)
+                            Ctrl/⌘ + F : Focus ô Search
+                            ? : Mở cửa sổ phím tắt
+                            L : Mở Log
+                        </div>
+                    </div>
+                </div>
+                <div class="tiny muted" style="margin-top:10px">
+                    - Portable import dùng <code>webkitdirectory</code> (file có
+                    <code>webkitRelativePath</code>).<br />
+                    - Persistent connect dùng <code>showDirectoryPicker()</code>
+                    và handle directory (yêu cầu bảo mật cao).
+                </div>
+            </div>
+        </dialog>
+
+        <audio id="audio" preload="metadata"></audio>
+        <script>
+(() => {
+  const $ = (s, r=document) => r.querySelector(s);
+
+  // UI
+  const btnConnect = $("#btnConnect");
+  const btnImport = $("#btnImport");
+  const btnImportFiles = $("#btnImportFiles");
+  const btnRescan = $("#btnRescan");
+  const btnReconnect = $("#btnReconnect");
+
+  const folderPicker = $("#folderPicker");
+  const filePicker = $("#filePicker");
+  const libSelect = $("#libSelect");
+  const q = $("#q");
+  const qCount = $("#qCount");
+  const list = $("#list");
+  const listMeta = $("#listMeta");
+  const scanBadge = $("#scanBadge");
+  const modeBadge = $("#modeBadge");
+  const compatBanner = $("#compatBanner");
+
+  const chipDuration = $("#chipDuration");
+  const chipTags = $("#chipTags");
+  const chipDeep = $("#chipDeep");
+
+  const btnShuffle = $("#btnShuffle");
+  const btnRepeat = $("#btnRepeat");
+  const btnLog = $("#btnLog");
+  const btnHelp = $("#btnHelp");
+
+  const dlgLog = $("#dlgLog");
+  const logBox = $("#logBox");
+  const btnCopyLog = $("#btnCopyLog");
+  const btnClearLog = $("#btnClearLog");
+  const btnCloseLog = $("#btnCloseLog");
+
+  const dlgHelp = $("#dlgHelp");
+  const btnCloseHelp = $("#btnCloseHelp");
+
+  const audio = $("#audio");
+  const btnPrev = $("#btnPrev");
+  const btnPlay = $("#btnPlay");
+  const btnNext = $("#btnNext");
+  const btnMute = $("#btnMute");
+  const seek = $("#seek");
+  const tCur = $("#tCur");
+  const tDur = $("#tDur");
+  const vol = $("#vol");
+  const volBadge = $("#volBadge");
+
+  const art = $("#art");
+  const artHint = $("#artHint");
+  const npTitle = $("#npTitle");
+  const npSub = $("#npSub");
+  const npStatus = $("#npStatus");
+  const npPath = $("#npPath");
+  const npHint = $("#npHint");
+
+  const btnRevealCurrent = $("#btnRevealCurrent");
+  const btnClearCache = $("#btnClearCache");
+  const btnClearLib = $("#btnClearLib");
+
+  // ====== Constants
+  const MIME_BY_EXT = {
+    mp3: "audio/mpeg",
+    m4a: "audio/mp4",
+    mp4: "audio/mp4",
+    aac: "audio/aac",
+    wav: "audio/wav",
+    ogg: "audio/ogg",
+    oga: "audio/ogg",
+    opus:"audio/opus",
+    weba:"audio/webm",
+    flac:"audio/flac"
+  };
+  const AUDIO_EXTS = new Set(Object.keys(MIME_BY_EXT));
+
+  // ====== State
+  const state = {
+    libs: [],
+    currentLibId: "",
+    tracks: [],                 // meta in-memory
+    portableFileMap: new Map(), // relPath -> File
+    handleMap: new Map(),       // relPath -> FileSystemFileHandle (persistent libs)
+    selectedIndex: -1,
+    playingIndex: -1,
+    shuffle: false,
+    repeat: "off", // off|all|one
+    shuffleOrder: [],
+    shufflePos: 0,
+
+    scanning: false,
+    scanAbort: {aborted:false},
+
+    opts: { duration:true, tags:true, deep:false },
+
+    // artwork cache for current session (object URLs)
+    coverUrlByKey: new Map(), // k -> objectURL
+  };
+
+  // ====== Small utilities
+  function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
+  function pad2(n){ return String(n).padStart(2,"0"); }
+  function fmtMMSS(sec){
+    if (!isFinite(sec) || sec < 0) return "00:00";
+    sec = Math.floor(sec);
+    const m = Math.floor(sec/60);
+    const s = sec%60;
+    return `${pad2(m)}:${pad2(s)}`;
+  }
+  function extOf(name){
+    const i = name.lastIndexOf(".");
+    return i>=0 ? name.slice(i+1).toLowerCase() : "";
+  }
+  function isAudioCandidateByNameType(name, type){
+    const e = extOf(name);
+    return AUDIO_EXTS.has(e) || (type && type.startsWith("audio/"));
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // FNV-1a hash
+  function fnv1a32Init(){ return 0x811c9dc5; }
+  function fnv1a32Update(h, str){
+    for (let i=0;i<str.length;i++){
+      h ^= str.charCodeAt(i);
+      h = (h + ((h<<1) + (h<<4) + (h<<7) + (h<<8) + (h<<24))) >>> 0;
+    }
+    return h >>> 0;
+  }
+  function fnv1a32Hex(h){ return ("00000000" + (h>>>0).toString(16)).slice(-8); }
+
+  function buildSnapshot(items){
+    // items: {p,s,m,t}
+    const arr = items.slice().sort((a,b)=>a.p.localeCompare(b.p));
+    let h = fnv1a32Init();
+    for (const it of arr){
+      h = fnv1a32Update(h, it.p + "\n" + it.s + "\n" + it.m + "\n" + (it.t||"") + "\n");
+    }
+    return { hash: fnv1a32Hex(h), count: arr.length, items: arr };
+  }
+
+  function buildLibId(kind, root, items){
+    const paths = items.map(x=>x.p).sort();
+    const head = paths.slice(0, 30).join("|");
+    const tail = paths.slice(Math.max(0, paths.length-30)).join("|");
+    let h = fnv1a32Init();
+    h = fnv1a32Update(h, kind + "\n" + root + "\n" + head + "\n" + tail);
+    return `${kind}::${root}::${fnv1a32Hex(h)}`;
+  }
+
+  function canPlayHint(mime){
+    try{
+      const a = document.createElement("audio");
+      return a.canPlayType(mime || ""); // "probably"/"maybe"/"" :contentReference[oaicite:6]{index=6}
+    }catch{ return ""; }
+  }
+
+  function blobWithGuessedMime(file){
+    const e = extOf(file.name);
+    const mime = MIME_BY_EXT[e] || "";
+    if (!mime) return {blob:file, fixed:false, mime:""};
+    const b = file.slice(0, file.size, mime);
+    return {blob:b, fixed: (file.type !== mime), mime};
+  }
+
+  function mediaErrorToText(code){
+    // MediaError codes. :contentReference[oaicite:7]{index=7}
+    switch(code){
+      case 1: return "Bị hủy — thường do đổi bài quá nhanh.";
+      case 2: return "Lỗi tải — nguồn bị gián đoạn.";
+      case 3: return "Không giải mã được — file hỏng hoặc codec không phù hợp.";
+      case 4: return "Nguồn không hỗ trợ — định dạng/codec không được hỗ trợ.";
+      default: return "Lỗi media không xác định.";
+    }
+  }
+
+  // ====== IndexedDB
+  const DB = { name: "musicbox-db", version: 2, db: null };
+
+  function openDB(){
+    if (DB.db) return Promise.resolve(DB.db);
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB.name, DB.version);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains("libs")) db.createObjectStore("libs", { keyPath: "id" });
+        if (!db.objectStoreNames.contains("statuses")) db.createObjectStore("statuses", { keyPath: "k" });
+        if (!db.objectStoreNames.contains("logs")) db.createObjectStore("logs", { keyPath: "id", autoIncrement: true });
+        if (!db.objectStoreNames.contains("settings")) db.createObjectStore("settings", { keyPath: "k" });
+      };
+      req.onsuccess = () => { DB.db = req.result; resolve(DB.db); };
+      req.onerror = () => reject(req.error);
+    });
+  }
+  function idbTx(store, mode="readonly"){
+    const tx = DB.db.transaction(store, mode);
+    return { store: tx.objectStore(store), tx };
+  }
+  function idbGet(store, key){
+    return new Promise((resolve, reject) => {
+      const {store: st} = idbTx(store);
+      const r = st.get(key);
+      r.onsuccess = () => resolve(r.result);
+      r.onerror = () => reject(r.error);
+    });
+  }
+  function idbPut(store, value){
+    return new Promise((resolve, reject) => {
+      const {store: st, tx} = idbTx(store, "readwrite");
+      st.put(value);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  function idbDel(store, key){
+    return new Promise((resolve, reject) => {
+      const {store: st, tx} = idbTx(store, "readwrite");
+      st.delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  function idbGetAll(store){
+    return new Promise((resolve, reject) => {
+      const {store: st} = idbTx(store);
+      const r = st.getAll();
+      r.onsuccess = () => resolve(r.result || []);
+      r.onerror = () => reject(r.error);
+    });
+  }
+  async function setSetting(k,v){ await idbPut("settings", {k, v}); }
+  async function getSetting(k, dflt=null){ const r = await idbGet("settings", k); return r ? r.v : dflt; }
+
+  function trackKey(libId, relPath){ return `${libId}|${relPath}`; }
+  async function getStatus(libId, relPath){ return await idbGet("statuses", trackKey(libId, relPath)); }
+  async function putStatus(libId, relPath, data){ await idbPut("statuses", {k: trackKey(libId, relPath), ...data}); }
+  async function clearStatusesForLib(libId){
+    const all = await idbGetAll("statuses");
+    const mine = all.filter(x => x.k && x.k.startsWith(libId + "|"));
+    for (const s of mine) await idbDel("statuses", s.k);
+  }
+
+  // ====== Logging
+  function fmtTime(ts){
+    const d = new Date(ts);
+    const hh = String(d.getHours()).padStart(2,"0");
+    const mm = String(d.getMinutes()).padStart(2,"0");
+    const ss = String(d.getSeconds()).padStart(2,"0");
+    return `${hh}:${mm}:${ss}`;
+  }
+  function log(level, msg, ctx=null){
+    const ts = Date.now();
+    const line = `[${fmtTime(ts)}] ${level.toUpperCase()}: ${msg}` + (ctx ? `\n  ${JSON.stringify(ctx)}` : "");
+    logBox.textContent += (logBox.textContent ? "\n" : "") + line;
+    logBox.scrollTop = logBox.scrollHeight;
+    idbPut("logs", {ts, level, msg, ctx}).catch(()=>{});
+    if (level === "error") scanBadge.textContent = "Có lỗi (mở Log)";
+  }
+  async function loadLogs(){
+    const rows = await idbGetAll("logs");
+    rows.sort((a,b)=>a.ts-b.ts);
+    logBox.textContent = rows.map(r => `[${fmtTime(r.ts)}] ${String(r.level).toUpperCase()}: ${r.msg}` + (r.ctx ? `\n  ${JSON.stringify(r.ctx)}` : "")).join("\n");
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  // ====== File System Access API (persistent)
+  const hasFSA = typeof window.showDirectoryPicker === "function"; // :contentReference[oaicite:8]{index=8}
+
+  async function verifyPermission(handle, withWrite=false, request=false){
+    // queryPermission / requestPermission. :contentReference[oaicite:9]{index=9}
+    const opts = withWrite ? {mode:"readwrite"} : {mode:"read"};
+    try{
+      const q = await handle.queryPermission(opts);
+      if (q === "granted") return true;
+      if (!request) return false;
+      const r = await handle.requestPermission(opts);
+      return r === "granted";
+    } catch (e){
+      return false;
+    }
+  }
+
+  async function walkDirectory(dirHandle, prefix=""){
+    // FileSystemDirectoryHandle.entries(). :contentReference[oaicite:10]{index=10}
+    const out = [];
+    for await (const [name, handle] of dirHandle.entries()){
+      if (handle.kind === "file"){
+        out.push({ relPath: prefix + name, fileHandle: handle });
+      } else if (handle.kind === "directory"){
+        const sub = await walkDirectory(handle, prefix + name + "/");
+        out.push(...sub);
+      }
+    }
+    return out;
+  }
+
+  // ====== Metadata extraction
+  async function getDurationSecFromBlob(blob){
+    return await new Promise((resolve) => {
+      const a = new Audio();
+      a.preload = "metadata";
+      const url = URL.createObjectURL(blob);
+      let settled = false;
+
+      const timeout = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve({ok:false, duration:null, err:"Timeout đọc metadata"});
+      }, 8000);
+
+      function cleanup(){
+        clearTimeout(timeout);
+        a.removeAttribute("src");
+        try{ a.load(); }catch{}
+        URL.revokeObjectURL(url);
+      }
+
+      a.addEventListener("loadedmetadata", () => {
+        if (settled) return;
+        settled = true;
+        const d = isFinite(a.duration) ? a.duration : null;
+        cleanup();
+        resolve({ok:true, duration:d, err:null});
+      }, {once:true});
+
+      a.addEventListener("error", () => {
+        if (settled) return;
+        settled = true;
+        const code = a.error?.code || 4;
+        const msg = a.error?.message || "";
+        cleanup();
+        resolve({ok:false, duration:null, err: mediaErrorToText(code) + (msg ? " — " + msg : "")});
+      }, {once:true});
+
+      a.src = url;
+    });
+  }
+
+  async function deepDecodeCheck(blob){
+    // Optional deep check: decodeAudioData (heavier).
+    try{
+      const ab = await blob.arrayBuffer();
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === "suspended"){ try{ await ctx.resume(); }catch{} }
+      await ctx.decodeAudioData(ab);
+      try{ await ctx.close(); }catch{}
+      return {ok:true, detail:"OK (decodeAudioData)", code:0};
+    } catch (e){
+      return {ok:false, detail:"Decode fail: " + (e?.message||String(e)), code:3};
+    }
+  }
+
+  // ---- ID3 (MP3) + FLAC tags (best-effort)
+  function readU32BE(dv, off){ return dv.getUint32(off, false); }
+  function readU24BE(dv, off){ return (dv.getUint8(off)<<16) | (dv.getUint8(off+1)<<8) | dv.getUint8(off+2); }
+  function synchsafeToInt(b0,b1,b2,b3){ return (b0<<21) | (b1<<14) | (b2<<7) | (b3); }
+
+  function decodeText(bytes, enc){
+    // enc: 0 ISO-8859-1, 1 UTF-16 with BOM, 2 UTF-16BE, 3 UTF-8 (ID3v2)
+    try{
+      if (enc === 3) return new TextDecoder("utf-8").decode(bytes).replace(/\0/g,"").trim();
+      if (enc === 0) return new TextDecoder("iso-8859-1").decode(bytes).replace(/\0/g,"").trim();
+      if (enc === 1){
+        // UTF-16 with BOM
+        return new TextDecoder("utf-16").decode(bytes).replace(/\0/g,"").trim();
+      }
+      if (enc === 2){
+        // UTF-16BE (no BOM) — use utf-16be if available, else manual swap
+        try{
+          return new TextDecoder("utf-16be").decode(bytes).replace(/\0/g,"").trim();
+        } catch {
+          // swap
+          const swapped = new Uint8Array(bytes.length);
+          for (let i=0;i+1<bytes.length;i+=2){ swapped[i]=bytes[i+1]; swapped[i+1]=bytes[i]; }
+          return new TextDecoder("utf-16").decode(swapped).replace(/\0/g,"").trim();
+        }
+      }
+    } catch {}
+    return "";
+  }
+
+  function indexOfNull(bytes, start){
+    for (let i=start;i<bytes.length;i++){
+      if (bytes[i] === 0) return i;
+    }
+    return -1;
+  }
+
+  async function parseMp3Id3(file){
+    // Frame IDs like TIT2/TPE1/TALB/APIC. :contentReference[oaicite:11]{index=11}
+    const head = new Uint8Array(await file.slice(0, 10).arrayBuffer());
+    if (head.length < 10) return null;
+    if (String.fromCharCode(head[0],head[1],head[2]) !== "ID3") return null;
+
+    const verMajor = head[3]; // 3=ID3v2.3, 4=ID3v2.4
+    const flags = head[5];
+    const size = synchsafeToInt(head[6], head[7], head[8], head[9]);
+    const tagBuf = new Uint8Array(await file.slice(0, 10 + size).arrayBuffer());
+    if (tagBuf.length < 10) return null;
+
+    let off = 10;
+
+    // (Skip extended header if present) — best-effort
+    const hasExt = (flags & 0x40) !== 0;
+    if (hasExt){
+      if (verMajor === 3){
+        const dv = new DataView(tagBuf.buffer, tagBuf.byteOffset, tagBuf.byteLength);
+        const extSize = readU32BE(dv, off);
+        off += extSize;
+      } else if (verMajor === 4){
+        const dv = new DataView(tagBuf.buffer, tagBuf.byteOffset, tagBuf.byteLength);
+        const extSize = synchsafeToInt(dv.getUint8(off), dv.getUint8(off+1), dv.getUint8(off+2), dv.getUint8(off+3));
+        off += extSize;
+      }
+    }
+
+    const dv = new DataView(tagBuf.buffer, tagBuf.byteOffset, tagBuf.byteLength);
+    const out = { title:"", artist:"", album:"", picture:null };
+
+    function readFrameSize(pos){
+      if (verMajor === 4){
+        return synchsafeToInt(dv.getUint8(pos), dv.getUint8(pos+1), dv.getUint8(pos+2), dv.getUint8(pos+3));
+      }
+      return readU32BE(dv, pos);
+    }
+
+    while (off + 10 <= tagBuf.length){
+      const id = String.fromCharCode(
+        tagBuf[off], tagBuf[off+1], tagBuf[off+2], tagBuf[off+3]
+      );
+      // padding
+      if (!/^[A-Z0-9]{4}$/.test(id)) break;
+
+      const frameSize = readFrameSize(off+4);
+      // flags at off+8..9
+      const dataStart = off + 10;
+      const dataEnd = dataStart + frameSize;
+      if (frameSize <= 0 || dataEnd > tagBuf.length) break;
+
+      const payload = tagBuf.slice(dataStart, dataEnd);
+
+      if (id === "TIT2" || id === "TPE1" || id === "TALB"){
+        const enc = payload[0];
+        const txt = decodeText(payload.slice(1), enc);
+        if (id === "TIT2" && txt) out.title = txt;
+        if (id === "TPE1" && txt) out.artist = txt;
+        if (id === "TALB" && txt) out.album = txt;
+      } else if (id === "APIC"){
+        const enc = payload[0];
+        let p = 1;
+        const nul = indexOfNull(payload, p);
+        if (nul < 0) { off = dataEnd; continue; }
+        const mime = new TextDecoder("iso-8859-1").decode(payload.slice(p, nul)) || "image/jpeg";
+        p = nul + 1;
+        const picType = payload[p]; p += 1;
+        // description (null-terminated depending on encoding)
+        let descEnd = -1;
+        if (enc === 0 || enc === 3){
+          descEnd = indexOfNull(payload, p);
+          if (descEnd < 0) descEnd = p;
+          p = descEnd + 1;
+        } else {
+          // UTF-16: find 00 00
+          for (let i=p;i+1<payload.length;i+=2){
+            if (payload[i]===0 && payload[i+1]===0){ descEnd = i; break; }
+          }
+          if (descEnd < 0) descEnd = p;
+          p = descEnd + 2;
+        }
+        const imgBytes = payload.slice(p);
+        if (imgBytes.length){
+          // store a limited blob (avoid huge covers)
+          const MAX = 220 * 1024;
+          const clipped = imgBytes.slice(0, Math.min(imgBytes.length, MAX));
+          out.picture = { mime, blob: new Blob([clipped], {type:mime}), type: picType };
+        }
+      }
+
+      off = dataEnd;
+    }
+
+    if (!out.title && !out.artist && !out.album && !out.picture) return null;
+    return out;
+  }
+
+  async function parseFlacTags(file){
+    // FLAC starts with "fLaC", metadata blocks near start, so cheap.
+    const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+    if (head.length < 4) return null;
+    if (String.fromCharCode(head[0],head[1],head[2],head[3]) !== "fLaC") return null;
+
+    let off = 4;
+    const out = { title:"", artist:"", album:"", picture:null };
+
+    // read up to first ~1.5MB of metadata (enough for comments+pictures typically)
+    const MAX_READ = Math.min(file.size, 1_500_000);
+    const buf = new Uint8Array(await file.slice(0, MAX_READ).arrayBuffer());
+    const dv = new DataView(buf.buffer);
+
+    let isLast = false;
+    while (!isLast && off + 4 <= buf.length){
+      const b0 = dv.getUint8(off);
+      isLast = (b0 & 0x80) !== 0;
+      const type = (b0 & 0x7f);
+      const len = readU24BE(dv, off+1);
+      off += 4;
+      if (off + len > buf.length) break;
+
+      const block = buf.slice(off, off+len);
+
+      if (type === 4){
+        // VORBIS_COMMENT: vendor_length (u32 LE), vendor, user_comment_list_length (u32 LE), then comments
+        const dv2 = new DataView(block.buffer, block.byteOffset, block.byteLength);
+        let p = 0;
+        const vendorLen = dv2.getUint32(p, true); p += 4;
+        p += vendorLen;
+        if (p + 4 > block.length) { off += len; continue; }
+        const count = dv2.getUint32(p, true); p += 4;
+        for (let i=0;i<count;i++){
+          if (p + 4 > block.length) break;
+          const clen = dv2.getUint32(p, true); p += 4;
+          if (p + clen > block.length) break;
+          const s = new TextDecoder("utf-8").decode(block.slice(p, p+clen));
+          p += clen;
+          const eq = s.indexOf("=");
+          if (eq > 0){
+            const k = s.slice(0,eq).toUpperCase();
+            const v = s.slice(eq+1).trim();
+            if (k === "TITLE" && v) out.title = out.title || v;
+            if (k === "ARTIST" && v) out.artist = out.artist || v;
+            if (k === "ALBUM" && v) out.album = out.album || v;
+          }
+        }
+      } else if (type === 6){
+        // PICTURE block: format is defined by FLAC spec; we parse minimal.
+        try{
+          const dv2 = new DataView(block.buffer, block.byteOffset, block.byteLength);
+          let p = 0;
+          const picType = dv2.getUint32(p, false); p += 4;
+          const mimeLen = dv2.getUint32(p, false); p += 4;
+          const mime = new TextDecoder("utf-8").decode(block.slice(p, p+mimeLen)) || "image/jpeg";
+          p += mimeLen;
+          const descLen = dv2.getUint32(p, false); p += 4;
+          p += descLen;
+          // skip dims+depth+colors
+          p += 4*4;
+          const dataLen = dv2.getUint32(p, false); p += 4;
+          const imgBytes = block.slice(p, p+dataLen);
+          if (imgBytes.length){
+            const MAX = 220 * 1024;
+            const clipped = imgBytes.slice(0, Math.min(imgBytes.length, MAX));
+            out.picture = { mime, blob: new Blob([clipped], {type:mime}), type: picType };
+          }
+        } catch {}
+      }
+
+      off += len;
+      // stop early if we already got title+artist+album and picture
+      if (out.title && out.artist && out.album && out.picture) break;
+    }
+
+    if (!out.title && !out.artist && !out.album && !out.picture) return null;
+    return out;
+  }
+
+  async function extractTags(file){
+    const e = extOf(file.name);
+    if (e === "mp3") return await parseMp3Id3(file);
+    if (e === "flac") return await parseFlacTags(file);
+    return null; // best-effort: others not implemented here (log will say)
+  }
+
+  async function testPlayableFast(blob){
+    // fast test via <audio> loadmetadata
+    const r = await getDurationSecFromBlob(blob);
+    if (r.ok) return {ok:true, detail:"OK (loadedmetadata)", code:0};
+    return {ok:false, detail:r.err || "Không phát được", code:3};
+  }
+
+  // ====== Rendering
+  function statusIcon(t){
+    const st = t.status;
+    if (!st) return `<span class="ico warn" title="Chưa scan/cached">…</span>`;
+    if (st.ok) return `<span class="ico ok" title="${escapeHtml(st.detail||"OK")}">✓</span>`;
+    return `<span class="ico bad" title="${escapeHtml(st.detail||"Không phát được")}">×</span>`;
+  }
+
+  function displayTitle(t){
+    const st = t.status;
+    const title = st?.title || "";
+    const artist = st?.artist || "";
+    if (title && artist) return `${title} — ${artist}`;
+    if (title) return title;
+    return t.name;
+  }
+
+  function displaySub(t){
+    const st = t.status;
+    const album = st?.album || "";
+    const parts = [];
+    if (album) parts.push(album);
+    parts.push(t.relPath);
+    return parts.join(" • ");
+  }
+
+  function getFilteredTracks(){
+    const s = (q.value || "").trim().toLowerCase();
+    const arr = [];
+    for (let i=0;i<state.tracks.length;i++){
+      const t = state.tracks[i];
+      const st = t.status;
+      const hay = [
+        t.name, t.relPath,
+        st?.title||"", st?.artist||"", st?.album||""
+      ].join(" ").toLowerCase();
+      if (!s || hay.includes(s)) arr.push(Object.assign({_index:i}, t));
+    }
+    return arr;
+  }
+
+  function renderList(){
+    const tracks = getFilteredTracks();
+    list.innerHTML = "";
+
+    if (!state.tracks.length){
+      const div = document.createElement("div");
+      div.style.padding = "14px";
+      div.innerHTML = `
+        <div style="font-weight:650;margin-bottom:6px">Chưa có bài hát</div>
+        <div class="muted tiny">
+          - Dùng <b>Connect Folder (Persistent)</b> để app nhớ folder lần sau (File System Access API; secure context).<br/>
+          - Hoặc <b>Import Folder (Portable)</b> bằng <code>webkitdirectory</code>. :contentReference[oaicite:12]{index=12}
+        </div>
+      `;
+      list.appendChild(div);
+      listMeta.textContent = "Chưa import";
+      qCount.textContent = "";
+      return;
+    }
+
+    listMeta.textContent = `${tracks.length}/${state.tracks.length} hiển thị • Enter để phát • ↑/↓ chọn • Space play/pause`;
+    qCount.textContent = tracks.length ? `${tracks.length}` : "";
+
+    tracks.forEach((t) => {
+      const idx = t._index;
+      const row = document.createElement("div");
+      row.className = "row" +
+        (idx === state.selectedIndex ? " sel" : "") +
+        (idx === state.playingIndex ? " playing" : "");
+      row.dataset.idx = String(idx);
+
+      const dur = (t.status?.durationSec != null) ? fmtMMSS(t.status.durationSec) : "—";
+      const tag = t.status ? (t.status.ok ? "OK" : "BAD") : (t.canPlayHint ? t.canPlayHint : "…");
+
+      row.innerHTML = `
+        ${statusIcon(t)}
+        <div>
+          <div class="name" title="${escapeHtml(displayTitle(t))}">${escapeHtml(displayTitle(t))}</div>
+          <div class="path" title="${escapeHtml(displaySub(t))}">${escapeHtml(displaySub(t))}</div>
+        </div>
+        <div class="dur">${dur}</div>
+        <div class="tag">${escapeHtml(tag)}</div>
+      `;
+      row.addEventListener("click", () => {
+        selectIndex(idx);
+        playIndex(idx, {user:true});
+      });
+      row.addEventListener("dblclick", () => playIndex(idx, {user:true}));
+      list.appendChild(row);
+    });
+  }
+
+  function selectIndex(i){
+    state.selectedIndex = clamp(i, 0, state.tracks.length-1);
+    renderList();
+  }
+  function revealIndex(i){
+    const el = list.querySelector(`.row[data-idx="${i}"]`);
+    if (el) el.scrollIntoView({block:"center", behavior:"smooth"});
+  }
+
+  // ====== Playback
+  function updateModeBadges(){
+    btnShuffle.textContent = `Shuffle: ${state.shuffle ? "On" : "Off"}`;
+    btnRepeat.textContent = `Repeat: ${state.repeat[0].toUpperCase()+state.repeat.slice(1)}`;
+    modeBadge.textContent = `Shuffle ${state.shuffle?"On":"Off"} • Repeat ${state.repeat}`;
+  }
+  function buildShuffleOrder(){
+    const n = state.tracks.length;
+    const a = Array.from({length:n}, (_,i)=>i);
+    for (let i=n-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    state.shuffleOrder = a;
+    state.shufflePos = 0;
+  }
+  function nextIndex(){
+    const n = state.tracks.length;
+    if (!n) return -1;
+    if (state.repeat === "one" && state.playingIndex >= 0) return state.playingIndex;
+
+    if (state.shuffle){
+      if (!state.shuffleOrder.length || state.shuffleOrder.length !== n) buildShuffleOrder();
+      if (state.playingIndex >= 0){
+        const pos = state.shuffleOrder.indexOf(state.playingIndex);
+        if (pos >= 0) state.shufflePos = pos+1;
+      }
+      if (state.shufflePos >= n){
+        if (state.repeat === "all"){
+          buildShuffleOrder();
+        } else return -1;
+      }
+      return state.shuffleOrder[state.shufflePos++] ?? -1;
+    }
+    if (state.playingIndex < 0) return 0;
+    const ni = state.playingIndex + 1;
+    if (ni < n) return ni;
+    return (state.repeat === "all") ? 0 : -1;
+  }
+  function prevIndex(){
+    const n = state.tracks.length;
+    if (!n) return -1;
+    if (state.shuffle){
+      if (!state.shuffleOrder.length || state.shuffleOrder.length !== n) buildShuffleOrder();
+      const pos = state.shuffleOrder.indexOf(state.playingIndex);
+      return (pos > 0) ? state.shuffleOrder[pos-1] : state.playingIndex;
+    }
+    if (state.playingIndex <= 0) return (state.repeat === "all") ? n-1 : 0;
+    return state.playingIndex - 1;
+  }
+
+  function clearArt(){
+    art.innerHTML = "";
+    art.appendChild(artHint);
+    artHint.style.display = "block";
+  }
+  function setArtFromBlob(key, blob, mime){
+    try{
+      // reuse existing objectURL if any
+      const old = state.coverUrlByKey.get(key);
+      if (old) URL.revokeObjectURL(old);
+      const url = URL.createObjectURL(blob);
+      state.coverUrlByKey.set(key, url);
+      art.innerHTML = `<img alt="cover" src="${url}">`;
+      artHint.style.display = "none";
+    } catch {
+      clearArt();
+    }
+  }
+
+  function updateNowPlayingUI(t){
+    const st = t?.status;
+    npTitle.textContent = t ? (st?.title || t.name) : "—";
+    const a = st?.artist || "";
+    const al = st?.album || "";
+    const info = [a, al].filter(Boolean).join(" • ");
+    npSub.textContent = t ? (info || `.${t.ext||""} • ${(t.size||0).toLocaleString()} bytes`) : "—";
+    npPath.textContent = t ? t.relPath : "—";
+    npStatus.textContent = !t ? "—" : (st ? (st.ok ? "OK" : "FAIL") : "Chưa scan");
+    npHint.textContent = !t ? "—"
+      : (st && !st.ok ? "Mở Log để xem lỗi + thử đổi codec/định dạng." :
+          (t.canPlayHint ? `canPlayType: ${t.canPlayHint}` : "Nếu không phát, bật Deep decode check rồi Re-scan changed."));
+
+    // cover
+    if (t && st?.coverBlob){
+      setArtFromBlob(trackKey(state.currentLibId, t.relPath), st.coverBlob, st.coverMime||"image/jpeg");
+    } else {
+      clearArt();
+    }
+  }
+
+  async function getBlobUrlForTrack(t){
+    if (t.sourceKind === "portable"){
+      const f = state.portableFileMap.get(t.relPath);
+      if (!f) throw new Error("Không có File object (portable). Hãy import lại folder.");
+      const {blob} = blobWithGuessedMime(f);
+      return URL.createObjectURL(blob);
+    } else {
+      const h = state.handleMap.get(t.relPath);
+      if (!h) throw new Error("Không có file handle (persistent). Hãy Reconnect hoặc Connect lại.");
+      const ok = await verifyPermission(h, false, false);
+      if (!ok) throw new Error("Chưa có quyền đọc file handle (hãy bấm Reconnect).");
+      const f = await h.getFile();
+      const {blob} = blobWithGuessedMime(f);
+      return URL.createObjectURL(blob);
+    }
+  }
+
+  async function playIndex(i, {user}={user:false}){
+    if (i < 0 || i >= state.tracks.length) return;
+    const t = state.tracks[i];
+
+    // cleanup previous URL
+    if (audio.dataset.url){
+      try{ URL.revokeObjectURL(audio.dataset.url); }catch{}
+      delete audio.dataset.url;
+    }
+
+    try{
+      const url = await getBlobUrlForTrack(t);
+      audio.src = url;
+      audio.dataset.url = url;
+
+      state.playingIndex = i;
+      selectIndex(i);
+      updateNowPlayingUI(t);
+
+      await audio.play();
+      btnPlay.textContent = "⏸";
+      log("info", `Play: ${t.relPath}`);
+      revealIndex(i);
+    } catch(err){
+      btnPlay.textContent = "▶️";
+      const msg = err?.message || String(err);
+      log("error", `Không thể phát: ${t.relPath} — ${msg}`);
+      setTimeout(() => {
+        const ni = nextIndex();
+        if (ni >= 0) playIndex(ni, {user:false});
+      }, 600);
+    }
+    renderList();
+  }
+
+  function pause(){
+    audio.pause();
+    btnPlay.textContent = "▶️";
+  }
+  async function resume(){
+    await audio.play();
+    btnPlay.textContent = "⏸";
+  }
+  function togglePlay(){
+    if (!audio.src) {
+      const i = (state.selectedIndex>=0) ? state.selectedIndex : 0;
+      playIndex(i, {user:true});
+      return;
+    }
+    if (audio.paused) resume(); else pause();
+  }
+
+  // ====== Scan pipeline (playability + duration + tags + cache)
+  async function hydrateStatusesOnly(libId){
+    for (const t of state.tracks){
+      const st = await getStatus(libId, t.relPath);
+      t.status = st || null;
+    }
+  }
+
+  async function scanChanged(lib, snapshot, {onlyChanged}){
+    if (state.scanning) return;
+    state.scanning = true;
+    state.scanAbort = {aborted:false};
+    const abort = state.scanAbort;
+
+    // decide todo
+    let todo = [];
+    for (const t of state.tracks){
+      const st = await getStatus(lib.id, t.relPath);
+      t.status = st || null;
+      const changed = !st || st.size !== t.size || st.lastModified !== t.lastModified;
+      if (!onlyChanged || changed) todo.push(t);
+    }
+
+    if (!todo.length){
+      scanBadge.textContent = "Không cần scan";
+      log("info", "Không có file nào cần scan lại.");
+      state.scanning = false;
+      return;
+    }
+
+    log("info", `Scan: ${todo.length}/${state.tracks.length} file… (duration=${state.opts.duration}, tags=${state.opts.tags}, deep=${state.opts.deep})`);
+    scanBadge.textContent = `Đang scan: 0/${todo.length}`;
+
+    const CONC = 3;
+    let done = 0;
+    let idx = 0;
+
+    const worker = async () => {
+      while (idx < todo.length && !abort.aborted){
+        const t = todo[idx++];
+        try{
+          const {file, fixedMime} = await getFileForScan(t);
+          const {blob, mime} = blobWithGuessedMime(file);
+
+          // tags
+          let title="", artist="", album="", coverBlob=null, coverMime=null;
+          if (state.opts.tags){
+            try{
+              const tags = await extractTags(file);
+              if (tags){
+                title = tags.title || "";
+                artist = tags.artist || "";
+                album = tags.album || "";
+                if (tags.picture?.blob){
+                  coverBlob = tags.picture.blob;
+                  coverMime = tags.picture.mime || coverBlob.type || "image/jpeg";
+                }
+              } else {
+                // best-effort: not all formats supported
+                const e = extOf(file.name);
+                if (e !== "mp3" && e !== "flac"){
+                  // keep quiet for most, but if user wants info:
+                  // log only once per file if no existing tags before
+                }
+              }
+            } catch (e){
+              log("warn", `Đọc tag lỗi: ${t.relPath}`, {err: String(e)});
+            }
+          }
+
+          // duration
+          let durationSec = null;
+          if (state.opts.duration){
+            const dr = await getDurationSecFromBlob(blob);
+            if (dr.ok && dr.duration != null) durationSec = dr.duration;
+          }
+
+          // playability
+          let pr;
+          if (state.opts.deep){
+            pr = await deepDecodeCheck(blob);
+          } else {
+            pr = await testPlayableFast(blob);
+          }
+
+          await putStatus(lib.id, t.relPath, {
+            ok: pr.ok,
+            detail: pr.detail,
+            code: pr.code,
+            checkedAt: Date.now(),
+            size: t.size,
+            lastModified: t.lastModified,
+            fixedMime: fixedMime || false,
+
+            durationSec,
+            title, artist, album,
+            coverBlob, coverMime
+          });
+
+          if (!pr.ok) log("warn", `Không phát được: ${t.relPath} — ${pr.detail}`, {code: pr.code});
+          else if (fixedMime) log("info", `Đã tự sửa MIME để tăng khả năng phát: ${t.relPath}`);
+
+        } catch(err){
+          await putStatus(lib.id, t.relPath, {
+            ok:false,
+            detail:`Lỗi scan: ${err?.message||String(err)}`,
+            code:-2,
+            checkedAt: Date.now(),
+            size: t.size,
+            lastModified: t.lastModified
+          });
+          log("error", `Lỗi scan: ${t.relPath}`, {err: String(err)});
+        } finally {
+          done++;
+          scanBadge.textContent = `Đang scan: ${done}/${todo.length}`;
+        }
+      }
+    };
+
+    await Promise.all(Array.from({length: CONC}, worker));
+
+    await hydrateStatusesOnly(lib.id);
+    state.scanning = false;
+    scanBadge.textContent = abort.aborted ? "Đã hủy" : "Hoàn tất scan";
+    log("info", abort.aborted ? "Đã hủy scan." : "Hoàn tất scan.");
+    renderList();
+
+    // update lib record
+    lib.snapshotHash = snapshot.hash;
+    lib.trackCount = snapshot.count;
+    lib.updatedAt = Date.now();
+    await idbPut("libs", lib);
+  }
+
+  async function getFileForScan(t){
+    if (t.sourceKind === "portable"){
+      const f = state.portableFileMap.get(t.relPath);
+      if (!f) throw new Error("Portable: thiếu File object (import lại).");
+      const e = extOf(f.name);
+      const mimeGuess = MIME_BY_EXT[e] || "";
+      const fixed = (!f.type && !!mimeGuess);
+      return {file: f, fixedMime: fixed};
+    } else {
+      const h = state.handleMap.get(t.relPath);
+      if (!h) throw new Error("Persistent: thiếu file handle (Reconnect).");
+      const ok = await verifyPermission(h, false, false);
+      if (!ok) throw new Error("Persistent: chưa có quyền đọc (hãy bấm Reconnect).");
+      const f = await h.getFile();
+      const e = extOf(f.name);
+      const mimeGuess = MIME_BY_EXT[e] || "";
+      const fixed = (!f.type && !!mimeGuess);
+      return {file: f, fixedMime: fixed};
+    }
+  }
+
+  // ====== Library management
+  async function loadLibs(){
+    state.libs = await idbGetAll("libs");
+    state.libs.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+    renderLibSelect();
+  }
+
+  function renderLibSelect(){
+    libSelect.innerHTML = "";
+    if (!state.libs.length){
+      const o = document.createElement("option");
+      o.value = "";
+      o.textContent = "(chưa có)";
+      libSelect.appendChild(o);
+      return;
+    }
+    for (const lib of state.libs){
+      const o = document.createElement("option");
+      o.value = lib.id;
+      const kind = lib.kind === "persistent" ? "🔗" : "📁";
+      const miss = lib.missing ? " (missing)" : "";
+      o.textContent = `${kind} ${lib.name} (${lib.trackCount||0})${miss}`;
+      libSelect.appendChild(o);
+    }
+    if (state.currentLibId && state.libs.some(x=>x.id===state.currentLibId)){
+      libSelect.value = state.currentLibId;
+    } else {
+      state.currentLibId = state.libs[0].id;
+      libSelect.value = state.currentLibId;
+    }
+  }
+
+  async function setCurrentLib(id){
+    state.currentLibId = id;
+    await setSetting("lastLibId", id);
+    const lib = state.libs.find(x=>x.id===id);
+    state.tracks = [];
+    state.portableFileMap.clear();
+    state.handleMap.clear();
+    state.selectedIndex = -1;
+    state.playingIndex = -1;
+    clearArt();
+
+    if (!lib){
+      listMeta.textContent = "Chưa có";
+      scanBadge.textContent = "—";
+      renderList();
+      return;
+    }
+
+    const kindLabel = lib.kind === "persistent" ? "Persistent" : "Portable";
+    listMeta.textContent = `${kindLabel}: ${lib.name} • ${lib.trackCount||0} tracks • snapshot ${lib.snapshotHash?.slice(0,6) || "—"}`;
+    scanBadge.textContent = "Sẵn sàng";
+    updateModeBadges();
+    btnReconnect.style.display = "none";
+
+    if (lib.kind === "persistent"){
+      // Try auto-load if permission granted; else show reconnect
+      const ok = lib.handle ? await verifyPermission(lib.handle, false, false) : false;
+      if (ok){
+        await loadPersistentLibrary(lib, {auto:true});
+      } else {
+        btnReconnect.style.display = "inline-flex";
+        scanBadge.textContent = "Cần Reconnect";
+        log("info", "Library persistent cần quyền đọc (bấm Reconnect). Lưu ý: handle lấy từ IndexedDB thường về trạng thái 'prompt'."); // :contentReference[oaicite:13]{index=13}
+        renderList();
+      }
+    } else {
+      // portable cannot reload files automatically
+      scanBadge.textContent = "Portable: cần import lại để phát";
+      renderList();
+    }
+  }
+
+  // ====== Persistent connect
+  async function connectPersistentFolder(){
+    if (!hasFSA){
+      log("warn", "Trình duyệt/ môi trường không hỗ trợ showDirectoryPicker(). Hãy dùng Portable Import.", {});
+      alert("Không có File System Access API (showDirectoryPicker). Dùng 'Import Folder (Portable)'.");
+      return;
+    }
+
+    // API requires secure context (HTTPS). :contentReference[oaicite:14]{index=14}
+    if (!window.isSecureContext){
+      alert("Để dùng Persistent Connect, hãy mở trang trong secure context (HTTPS). Nếu bạn đang mở file://, hãy chạy bằng web server rồi mở qua HTTPS/localhost tuỳ môi trường.");
+      log("warn", "Không phải secure context → showDirectoryPicker có thể bị chặn.");
+    }
+
+    let dir;
+    try{
+      dir = await window.showDirectoryPicker();
+    } catch (e){
+      log("warn", "Hủy chọn folder (persistent).");
+      return;
+    }
+
+    const granted = await verifyPermission(dir, false, true);
+    if (!granted){
+      log("error", "Không được cấp quyền đọc thư mục.");
+      alert("Không được cấp quyền đọc. Thử lại và bấm Allow/Grant.");
+      return;
+    }
+
+    // enumerate
+    const entries = await walkDirectory(dir, "");
+    const audioEntries = [];
+    const snapshotItems = [];
+
+    for (const it of entries){
+      const fh = it.fileHandle;
+      const ok = isAudioCandidateByNameType(it.relPath, "");
+      if (!ok) continue;
+      // we need file metadata; getFile is needed
+      let f;
+      try{
+        f = await fh.getFile();
+      } catch (e){
+        continue;
+      }
+      if (!isAudioCandidateByNameType(f.name, f.type)) continue;
+
+      snapshotItems.push({p: it.relPath, s: f.size, m: f.lastModified, t: f.type||""});
+      audioEntries.push({relPath: it.relPath, fileHandle: fh, file: f});
+    }
+
+    const snapshot = buildSnapshot(snapshotItems);
+    const rootName = dir.name || "Folder";
+    const libId = buildLibId("persistent", rootName, snapshot.items);
+
+    const now = Date.now();
+    const existing = await idbGet("libs", libId);
+
+    const lib = {
+      id: libId,
+      kind: "persistent",
+      name: existing?.name || rootName,
+      createdAt: existing?.createdAt || now,
+      updatedAt: now,
+      snapshotHash: snapshot.hash,
+      trackCount: snapshot.count,
+      root: rootName,
+      handle: dir,
+      missing: false
+    };
+
+    try{
+      await idbPut("libs", lib);
+    } catch (e){
+      log("error", "Không lưu được directory handle vào IndexedDB (trình duyệt hạn chế).", {err:String(e)});
+      alert("Không lưu được folder handle để nhớ lần sau (trình duyệt hạn chế). Bạn vẫn dùng được trong phiên này.");
+    }
+
+    await loadLibs();
+    state.currentLibId = libId;
+    libSelect.value = libId;
+
+    await loadPersistentLibrary(lib, {prefetched: audioEntries, snapshot});
+  }
+
+  async function loadPersistentLibrary(lib, {auto=false, prefetched=null, snapshot=null}={}){
+    // ensure permission
+    const ok = lib.handle ? await verifyPermission(lib.handle, false, auto ? false : true) : false;
+    if (!ok){
+      btnReconnect.style.display = "inline-flex";
+      scanBadge.textContent = "Cần Reconnect";
+      renderList();
+      return;
+    }
+    btnReconnect.style.display = "none";
+
+    let audioEntries = prefetched;
+    let snap = snapshot;
+
+    try{
+      if (!audioEntries){
+        const entries = await walkDirectory(lib.handle, "");
+        audioEntries = [];
+        const snapshotItems = [];
+        for (const it of entries){
+          const fh = it.fileHandle;
+          // pull file metadata
+          let f;
+          try{ f = await fh.getFile(); } catch { continue; }
+          if (!isAudioCandidateByNameType(f.name, f.type)) continue;
+          snapshotItems.push({p: it.relPath, s: f.size, m: f.lastModified, t: f.type||""});
+          audioEntries.push({relPath: it.relPath, fileHandle: fh, file: f});
+        }
+        snap = buildSnapshot(snapshotItems);
+      }
+    } catch (e){
+      // folder might be gone
+      lib.missing = true;
+      await idbPut("libs", lib);
+      await loadLibs();
+      renderLibSelect();
+      scanBadge.textContent = "Folder missing";
+      log("error", "Không đọc được folder (có thể folder đã bị xóa/di chuyển).", {err:String(e)});
+      alert("Folder đã biến mất hoặc không truy cập được. Hãy Connect lại folder.");
+      return;
+    }
+
+    // Build tracks
+    state.tracks = [];
+    state.handleMap.clear();
+    for (const it of audioEntries){
+      state.handleMap.set(it.relPath, it.fileHandle);
+      const f = it.file;
+      const e = extOf(f.name);
+      const mimeGuess = MIME_BY_EXT[e] || (f.type||"");
+      const hint = mimeGuess ? canPlayHint(mimeGuess) : "";
+      state.tracks.push({
+        sourceKind: "persistent",
+        relPath: it.relPath,
+        name: f.name,
+        ext: e,
+        size: f.size,
+        lastModified: f.lastModified,
+        type: f.type || "",
+        canPlayHint: hint,
+        status: null
+      });
+    }
+    state.tracks.sort((a,b)=>a.relPath.localeCompare(b.relPath));
+    renderList();
+
+    // Cache policy: if snapshot unchanged -> hydrate only
+    if (snap && lib.snapshotHash && lib.snapshotHash === snap.hash){
+      scanBadge.textContent = "Không đổi — dùng cache";
+      log("info", `Snapshot không đổi → dùng cache (bỏ scan nặng).`);
+      await hydrateStatusesOnly(lib.id);
+      renderList();
+    } else {
+      scanBadge.textContent = lib.snapshotHash ? "Có thay đổi — scan phần đổi" : "Lần đầu — scan";
+      await scanChanged(lib, snap, {onlyChanged: !!lib.snapshotHash});
+      // update lib snapshotHash after scan
+      lib.snapshotHash = snap.hash;
+      lib.trackCount = snap.count;
+      lib.updatedAt = Date.now();
+      lib.missing = false;
+      await idbPut("libs", lib);
+      await loadLibs();
+      renderLibSelect();
+    }
+
+    listMeta.textContent = `Persistent: ${lib.name} • ${state.tracks.length} tracks • snapshot ${lib.snapshotHash?.slice(0,6) || "—"}`;
+    scanBadge.textContent = "Sẵn sàng";
+  }
+
+  // ====== Portable import (webkitdirectory)
+  async function importPortable(files){
+    // webkitdirectory provides webkitRelativePath. :contentReference[oaicite:15]{index=15}
+    if (!files || !files.length) return;
+
+    // group by top folder root (like before)
+    const groups = new Map();
+    for (const f of files){
+      const rp = f.webkitRelativePath || f.name;
+      const root = (rp.includes("/") ? rp.split("/")[0] : "(files)");
+      if (!groups.has(root)) groups.set(root, []);
+      groups.get(root).push(f);
+    }
+
+    // only load the last imported group as current session (for simplicity)
+    for (const [root, fList] of groups){
+      state.portableFileMap.clear();
+      const snapshotItems = [];
+      state.tracks = [];
+
+      for (const f of fList){
+        if (!isAudioCandidateByNameType(f.name, f.type)) continue;
+        const rp = f.webkitRelativePath || f.name;
+        state.portableFileMap.set(rp, f);
+
+        snapshotItems.push({p: rp, s: f.size, m: f.lastModified, t: f.type||""});
+
+        const e = extOf(f.name);
+        const mimeGuess = MIME_BY_EXT[e] || (f.type||"");
+        const hint = mimeGuess ? canPlayHint(mimeGuess) : "";
+        state.tracks.push({
+          sourceKind: "portable",
+          relPath: rp,
+          name: f.name,
+          ext: e,
+          size: f.size,
+          lastModified: f.lastModified,
+          type: f.type || "",
+          canPlayHint: hint,
+          status: null
+        });
+      }
+
+      state.tracks.sort((a,b)=>a.relPath.localeCompare(b.relPath));
+      const snapshot = buildSnapshot(snapshotItems);
+      const libId = buildLibId("portable", root, snapshot.items);
+      const now = Date.now();
+      const existing = await idbGet("libs", libId);
+
+      const lib = {
+        id: libId,
+        kind: "portable",
+        name: existing?.name || (root === "(files)" ? "Loose files" : root),
+        createdAt: existing?.createdAt || now,
+        updatedAt: now,
+        snapshotHash: snapshot.hash,
+        trackCount: snapshot.count,
+        root
+      };
+
+      await idbPut("libs", lib);
+      await loadLibs();
+      state.currentLibId = libId;
+      libSelect.value = libId;
+      listMeta.textContent = `Portable: ${lib.name} • ${snapshot.count} tracks • snapshot ${snapshot.hash.slice(0,6)}`;
+
+      // scan policy
+      if (existing && existing.snapshotHash === snapshot.hash){
+        scanBadge.textContent = "Không đổi — dùng cache";
+        log("info", "Portable snapshot không đổi → dùng cache.");
+        await hydrateStatusesOnly(libId);
+      } else {
+        scanBadge.textContent = existing ? "Có thay đổi — scan phần đổi" : "Lần đầu — scan";
+        await scanChanged(lib, snapshot, {onlyChanged: !!existing});
+      }
+
+      renderList();
+      applySearchCount();
+      updateModeBadges();
+    }
+  }
+
+  function applySearchCount(){
+    const tracks = getFilteredTracks();
+    qCount.textContent = tracks.length ? `${tracks.length}` : "";
+  }
+
+  // ====== UI events
+  btnConnect.addEventListener("click", connectPersistentFolder);
+
+  btnImport.addEventListener("click", () => folderPicker.click());
+  folderPicker.addEventListener("change", async () => {
+    const files = Array.from(folderPicker.files || []);
+    folderPicker.value = "";
+    await importPortable(files);
+  });
+
+  btnImportFiles.addEventListener("click", () => filePicker.click());
+  filePicker.addEventListener("change", async () => {
+    const files = Array.from(filePicker.files || []);
+    filePicker.value = "";
+    await importPortable(files);
+  });
+
+  btnRescan.addEventListener("click", async () => {
+    const lib = state.libs.find(x=>x.id===state.currentLibId);
+    if (!lib || !state.tracks.length) return;
+    // Build snapshot from current tracks (already loaded)
+    const items = state.tracks.map(t=>({p:t.relPath, s:t.size, m:t.lastModified, t:t.type||""}));
+    const snap = buildSnapshot(items);
+    await scanChanged(lib, snap, {onlyChanged:true});
+    renderList();
+  });
+
+  btnReconnect.addEventListener("click", async () => {
+    const lib = state.libs.find(x=>x.id===state.currentLibId);
+    if (!lib || lib.kind !== "persistent") return;
+    const ok = lib.handle ? await verifyPermission(lib.handle, false, true) : false; // user gesture required
+    if (!ok){
+      alert("Không được cấp quyền. Thử lại và bấm Allow/Grant.");
+      return;
+    }
+    await loadPersistentLibrary(lib, {auto:false});
+  });
+
+  libSelect.addEventListener("change", async () => setCurrentLib(libSelect.value));
+
+  q.addEventListener("input", () => {
+    applySearchCount();
+    renderList();
+  });
+
+  chipDuration.addEventListener("click", async () => {
+    state.opts.duration = !state.opts.duration;
+    chipDuration.classList.toggle("on", state.opts.duration);
+    await setSetting("opt_duration", state.opts.duration);
+  });
+  chipTags.addEventListener("click", async () => {
+    state.opts.tags = !state.opts.tags;
+    chipTags.classList.toggle("on", state.opts.tags);
+    await setSetting("opt_tags", state.opts.tags);
+  });
+  chipDeep.addEventListener("click", async () => {
+    state.opts.deep = !state.opts.deep;
+    chipDeep.classList.toggle("on", state.opts.deep);
+    await setSetting("opt_deep", state.opts.deep);
+  });
+
+  btnShuffle.addEventListener("click", async () => {
+    state.shuffle = !state.shuffle;
+    if (state.shuffle) buildShuffleOrder();
+    await setSetting("shuffle", state.shuffle);
+    updateModeBadges();
+  });
+
+  btnRepeat.addEventListener("click", async () => {
+    state.repeat = (state.repeat === "off") ? "all" : (state.repeat === "all") ? "one" : "off";
+    await setSetting("repeat", state.repeat);
+    updateModeBadges();
+  });
+
+  btnLog.addEventListener("click", async () => { await loadLogs(); dlgLog.showModal(); });
+  btnCloseLog.addEventListener("click", () => dlgLog.close());
+  btnCopyLog.addEventListener("click", async () => {
+    try{ await navigator.clipboard.writeText(logBox.textContent || ""); log("info","Đã copy log."); }
+    catch{ log("warn","Clipboard bị chặn."); }
+  });
+  btnClearLog.addEventListener("click", async () => {
+    const db = DB.db;
+    const tx = db.transaction("logs","readwrite");
+    tx.objectStore("logs").clear();
+    await new Promise(res => tx.oncomplete=res);
+    logBox.textContent = "";
+  });
+
+  btnHelp.addEventListener("click", () => dlgHelp.showModal());
+  btnCloseHelp.addEventListener("click", () => dlgHelp.close());
+
+  btnPrev.addEventListener("click", () => playIndex(prevIndex(), {user:true}));
+  btnNext.addEventListener("click", () => playIndex(nextIndex(), {user:true}));
+  btnPlay.addEventListener("click", () => togglePlay());
+  btnMute.addEventListener("click", () => {
+    audio.muted = !audio.muted;
+    btnMute.textContent = audio.muted ? "🔇" : "🔈";
+  });
+
+  vol.addEventListener("input", async () => {
+    audio.volume = parseFloat(vol.value);
+    volBadge.textContent = Math.round(audio.volume*100) + "%";
+    await setSetting("volume", audio.volume);
+  });
+
+  seek.addEventListener("change", () => {
+    if (isFinite(audio.duration) && audio.duration>0){
+      const p = parseFloat(seek.value)/1000;
+      audio.currentTime = p * audio.duration;
+    }
+  });
+
+  audio.addEventListener("timeupdate", () => {
+    tCur.textContent = fmtMMSS(audio.currentTime);
+    const d = audio.duration;
+    tDur.textContent = fmtMMSS(d);
+    if (isFinite(d) && d>0){
+      seek.value = String(Math.round((audio.currentTime/d)*1000));
+    }
+  });
+
+  audio.addEventListener("ended", () => {
+    const ni = nextIndex();
+    if (ni >= 0) playIndex(ni, {user:false});
+    else btnPlay.textContent = "▶️";
+  });
+
+  audio.addEventListener("error", () => {
+    const code = audio.error?.code || 0;
+    const msg = audio.error?.message || "";
+    const t = state.tracks[state.playingIndex];
+    const where = t ? t.relPath : "(unknown)";
+    log("error", `Playback error: ${where} — ${mediaErrorToText(code)}${msg ? " — "+msg : ""}`, {code});
+    setTimeout(() => {
+      const ni = nextIndex();
+      if (ni >= 0) playIndex(ni, {user:false});
+    }, 600);
+  });
+
+  btnRevealCurrent.addEventListener("click", () => {
+    if (state.playingIndex >= 0) revealIndex(state.playingIndex);
+  });
+
+  btnClearCache.addEventListener("click", async () => {
+    if (!state.currentLibId) return;
+    await clearStatusesForLib(state.currentLibId);
+    for (const t of state.tracks) t.status = null;
+    // clear cover urls
+    for (const u of state.coverUrlByKey.values()){ try{ URL.revokeObjectURL(u); }catch{} }
+    state.coverUrlByKey.clear();
+    clearArt();
+    renderList();
+    log("info", "Đã xóa metadata cache cho library hiện tại.");
+  });
+
+  btnClearLib.addEventListener("click", async () => {
+    const id = state.currentLibId;
+    if (!id) return;
+    const lib = state.libs.find(x=>x.id===id);
+    await idbDel("libs", id);
+    await clearStatusesForLib(id);
+
+    // cleanup
+    for (const u of state.coverUrlByKey.values()){ try{ URL.revokeObjectURL(u); }catch{} }
+    state.coverUrlByKey.clear();
+    clearArt();
+
+    state.libs = state.libs.filter(x=>x.id!==id);
+    state.currentLibId = state.libs[0]?.id || "";
+    await setSetting("lastLibId", state.currentLibId || "");
+    renderLibSelect();
+    state.tracks = [];
+    state.portableFileMap.clear();
+    state.handleMap.clear();
+    state.selectedIndex = -1;
+    state.playingIndex = -1;
+    audio.pause();
+    audio.removeAttribute("src");
+    renderList();
+    log("info", "Đã remove library khỏi app.");
+  });
+
+  // Drag & drop (portable)
+  document.addEventListener("dragover", (e) => { e.preventDefault(); });
+  document.addEventListener("drop", async (e) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer?.files || []);
+    if (files.length){
+      log("info", `Drop: nhận ${files.length} file.`);
+      await importPortable(files);
+    }
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener("keydown", async (e) => {
+    const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
+    const inInput = (tag === "input" || tag === "textarea" || e.target?.isContentEditable);
+    const key = e.key;
+
+    if ((e.ctrlKey || e.metaKey) && key.toLowerCase() === "f"){
+      e.preventDefault();
+      q.focus(); q.select();
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && key.toLowerCase() === "o"){
+      e.preventDefault();
+      folderPicker.click();
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && key.toLowerCase() === "k"){
+      e.preventDefault();
+      connectPersistentFolder();
+      return;
+    }
+
+    if (key === "Escape"){
+      if (document.activeElement === q) q.blur();
+      if (dlgHelp.open) dlgHelp.close();
+      if (dlgLog.open) dlgLog.close();
+      return;
+    }
+    if (inInput) return;
+
+    if (key === " "){ e.preventDefault(); togglePlay(); return; }
+    if (key.toLowerCase() === "n"){ e.preventDefault(); playIndex(nextIndex(), {user:true}); return; }
+    if (key.toLowerCase() === "p"){ e.preventDefault(); playIndex(prevIndex(), {user:true}); return; }
+    if (key.toLowerCase() === "s"){ e.preventDefault(); btnShuffle.click(); return; }
+    if (key.toLowerCase() === "r"){ e.preventDefault(); btnRepeat.click(); return; }
+    if (key.toLowerCase() === "m"){ e.preventDefault(); btnMute.click(); return; }
+    if (key === "?"){ e.preventDefault(); dlgHelp.showModal(); return; }
+    if (key.toLowerCase() === "l"){ e.preventDefault(); await loadLogs(); dlgLog.showModal(); return; }
+
+    if (key === "ArrowDown"){
+      e.preventDefault();
+      if (!state.tracks.length) return;
+      selectIndex(state.selectedIndex < 0 ? 0 : state.selectedIndex+1);
+      revealIndex(state.selectedIndex);
+      return;
+    }
+    if (key === "ArrowUp"){
+      e.preventDefault();
+      if (!state.tracks.length) return;
+      selectIndex(state.selectedIndex < 0 ? 0 : state.selectedIndex-1);
+      revealIndex(state.selectedIndex);
+      return;
+    }
+    if (key === "Enter"){
+      e.preventDefault();
+      if (state.selectedIndex >= 0) playIndex(state.selectedIndex, {user:true});
+      return;
+    }
+    if (key === "ArrowLeft"){
+      e.preventDefault();
+      audio.currentTime = Math.max(0, (audio.currentTime||0) - 5);
+      return;
+    }
+    if (key === "ArrowRight"){
+      e.preventDefault();
+      audio.currentTime = Math.min(audio.duration||audio.currentTime+5, (audio.currentTime||0) + 5);
+      return;
+    }
+  });
+
+  // ====== Boot
+  async function boot(){
+    await openDB();
+
+    // settings restore
+    state.shuffle = await getSetting("shuffle", false);
+    state.repeat  = await getSetting("repeat", "off");
+    state.opts.duration = await getSetting("opt_duration", true);
+    state.opts.tags = await getSetting("opt_tags", true);
+    state.opts.deep = await getSetting("opt_deep", false);
+
+    chipDuration.classList.toggle("on", state.opts.duration);
+    chipTags.classList.toggle("on", state.opts.tags);
+    chipDeep.classList.toggle("on", state.opts.deep);
+
+    const v = await getSetting("volume", 0.9);
+    audio.volume = typeof v === "number" ? v : 0.9;
+    vol.value = String(audio.volume);
+    volBadge.textContent = Math.round(audio.volume*100) + "%";
+
+    updateModeBadges();
+
+    // compatibility banner
+    if (!hasFSA){
+      compatBanner.style.display = "block";
+      compatBanner.innerHTML = `
+        <b>Gợi ý:</b> Trình duyệt/môi trường hiện tại không có <code>showDirectoryPicker()</code> → không thể nhớ folder tự động.
+        Hãy dùng <b>Import Folder (Portable)</b> bằng <code>webkitdirectory</code>.
+      `;
+    } else if (!window.isSecureContext){
+      compatBanner.style.display = "block";
+      compatBanner.innerHTML = `
+        <b>Lưu ý:</b> Bạn đang không ở secure context (HTTPS). File System Access API yêu cầu secure context. :contentReference[oaicite:16]{index=16}
+        Dùng <b>Import Folder (Portable)</b> hoặc mở trang qua HTTPS.
+      `;
+    }
+
+    await loadLibs();
+    const last = await getSetting("lastLibId", "");
+    if (last && state.libs.some(x=>x.id===last)) state.currentLibId = last;
+    else state.currentLibId = state.libs[0]?.id || "";
+
+    renderLibSelect();
+    await loadLogs();
+
+    if (state.currentLibId){
+      await setCurrentLib(state.currentLibId);
+    } else {
+      renderList();
+    }
+
+    log("info", "MusicBox Pro sẵn sàng.");
+    log("info", "Persistent folder dùng File System Access API (showDirectoryPicker + permission)."); // :contentReference[oaicite:17]{index=17}
+    log("info", "Portable folder dùng webkitdirectory + webkitRelativePath."); // :contentReference[oaicite:18]{index=18}
+  }
+
+  boot().catch(err => {
+    console.error(err);
+    alert("Không khởi tạo được app: " + (err?.message || String(err)));
+  });
+})();
+</script>
+    </body>
+</html>
