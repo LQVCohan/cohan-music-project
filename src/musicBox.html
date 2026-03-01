@@ -27,8 +27,9 @@
         body {
             margin: 0; font-family: var(--sans); color: var(--text); 
             background: radial-gradient(circle at 50% 0%, #2e1100 0%, var(--bg) 60%);
-            height: 100vh; overflow: hidden;
+            height: 100vh; overflow: hidden; user-select: none;
         }
+        input, textarea, code, .logBox { user-select: text; }
         
         /* Custom Premium Scrollbars */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -124,7 +125,7 @@
         /* PLAYLIST */
         .list { height: 100%; overflow: auto; font-size: 14px; padding: 10px; }
         .row {
-            display: grid; grid-template-columns: 28px 1fr 120px 42px; gap: 12px; align-items: center;
+            display: grid; grid-template-columns: 28px 1fr 120px 130px 40px; gap: 12px; align-items: center;
             padding: 12px 16px; border-bottom: 1px solid transparent; cursor: pointer;
             border-radius: 12px; transition: all 0.2s; margin-bottom: 4px;
         }
@@ -141,6 +142,26 @@
         .row .path { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .row .dur { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
         .row .tag { font-size: 12px; text-align: right; color: var(--muted); font-family: var(--mono); }
+        .row .menuBtn {
+            border: none; background: rgba(255,255,255,0.05); color: var(--text); width: 32px; height: 32px;
+            border-radius: 10px; cursor: pointer; font-weight: bold;
+        }
+        .row .menuBtn:hover { background: rgba(255, 107, 0, 0.2); }
+
+        .statusPill { display: inline-block; padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+        .statusPill.ok { color: var(--ok); background: rgba(46, 213, 115, 0.15); }
+        .statusPill.bad { color: var(--bad); background: rgba(255, 71, 87, 0.15); }
+        .statusPill.maybe { color: var(--warn); background: rgba(255, 165, 2, 0.15); }
+
+        .trackMenu {
+            position: fixed; min-width: 220px; background: rgba(25, 13, 7, 0.98); border: 1px solid var(--line);
+            border-radius: 12px; box-shadow: var(--shadow); padding: 8px; z-index: 40;
+        }
+        .trackMenu button {
+            width: 100%; text-align: left; border: none; padding: 10px 12px; background: transparent; color: var(--text);
+            border-radius: 8px; cursor: pointer;
+        }
+        .trackMenu button:hover { background: rgba(255, 107, 0, 0.15); }
 
         /* ICONS */
         .ico { width: 22px; height: 22px; display: inline-grid; place-items: center; border-radius: 6px; font-size: 12px; font-weight:bold; }
@@ -160,6 +181,13 @@
             box-shadow: 0 10px 40px rgba(0,0,0,0.6), inset 0 0 40px rgba(255,107,0,0.1);
         }
         .art img { width: 100%; height: 100%; object-fit: cover; display: block; animation: pulse 10s infinite alternate; }
+        .vinyl {
+            width: 84%; aspect-ratio: 1/1; border-radius: 50%;
+            background: radial-gradient(circle at center, #1f130d 0 15%, #111 16% 26%, #252525 27% 34%, #0d0d0d 35% 100%);
+            border: 6px solid rgba(255, 107, 0, 0.25); box-shadow: 0 0 25px rgba(255,107,0,.2), inset 0 0 30px rgba(255,255,255,.06);
+            animation: spin 10s linear infinite;
+        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes pulse { 0% { transform: scale(1); } 100% { transform: scale(1.05); } }
         .npTitle { font-size: 22px; font-weight: 800; line-height: 1.3; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         .npSub { color: var(--accent); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -567,6 +595,9 @@
 
     // artwork cache for current session (object URLs)
     coverUrlByKey: new Map(), // k -> objectURL
+
+    playlists: [],
+    trackMenuEl: null
   };
 
   // ====== Small utilities
@@ -627,6 +658,24 @@
       return a.canPlayType(mime || ""); // "probably"/"maybe"/"" :contentReference[oaicite:6]{index=6}
     }catch{ return ""; }
   }
+  function normalizeCanPlayHint(hint){
+    if (hint === "probably") return "Ổn";
+    if (hint === "maybe") return "Có thể lỗi";
+    return "Có lỗi";
+  }
+
+  function trackHealth(t){
+    if (t.status){
+      return t.status.ok
+        ? {label:"Ổn", klass:"ok", note:"File đã scan và phát ổn."}
+        : {label:"Có lỗi", klass:"bad", note:t.status.detail || "Không phát được."};
+    }
+    const hint = t.canPlayHint || "";
+    if (hint === "probably") return {label:"Ổn", klass:"ok", note:"Dựa trên canPlayType: probably."};
+    if (hint === "maybe") return {label:"Có thể lỗi", klass:"maybe", note:"Dựa trên canPlayType: maybe (nên scan sâu)."};
+    return {label:"Có lỗi", klass:"bad", note:"Trình duyệt không nhận định dạng này."};
+  }
+
 
   function blobWithGuessedMime(file){
     const e = extOf(file.name);
@@ -1124,7 +1173,7 @@
       row.dataset.idx = String(idx);
 
       const dur = (t.status?.durationSec != null) ? fmtMMSS(t.status.durationSec) : "—";
-      const tag = t.status ? (t.status.ok ? "OK" : "BAD") : (t.canPlayHint ? t.canPlayHint : "…");
+      const health = trackHealth(t);
 
       row.innerHTML = `
         ${statusIcon(t)}
@@ -1133,11 +1182,21 @@
           <div class="path" title="${escapeHtml(displaySub(t))}">${escapeHtml(displaySub(t))}</div>
         </div>
         <div class="dur">${dur}</div>
-        <div class="tag">${escapeHtml(tag)}</div>
+        <div class="tag" title="${escapeHtml(health.note)}"><span class="statusPill ${health.klass}">${escapeHtml(health.label)}</span></div>
+        <button class="menuBtn" title="Thao tác bài hát" aria-label="Thao tác bài hát">⋯</button>
       `;
+      row.draggable = true;
+      row.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/track-index", String(idx));
+        e.dataTransfer.effectAllowed = "copyMove";
+      });
       row.addEventListener("click", () => {
         selectIndex(idx);
-        playIndex(idx, {user:true});
+      });
+      const menuBtn = row.querySelector('.menuBtn');
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openTrackMenu(idx, e.clientX, e.clientY);
       });
       row.addEventListener("dblclick", () => playIndex(idx, {user:true}));
       list.appendChild(row);
@@ -1152,6 +1211,64 @@
     const el = list.querySelector(`.row[data-idx="${i}"]`);
     if (el) el.scrollIntoView({block:"center", behavior:"smooth"});
   }
+
+  function closeTrackMenu(){
+    if (state.trackMenuEl){
+      state.trackMenuEl.remove();
+      state.trackMenuEl = null;
+    }
+  }
+
+  function removeTrackFromCurrentList(idx){
+    if (idx < 0 || idx >= state.tracks.length) return;
+    const [removed] = state.tracks.splice(idx, 1);
+    if (!removed) return;
+    if (state.playingIndex === idx){
+      audio.pause();
+      audio.removeAttribute('src');
+      state.playingIndex = -1;
+      btnPlay.textContent = "▶️";
+      updateNowPlayingUI(null);
+    } else if (state.playingIndex > idx){
+      state.playingIndex -= 1;
+    }
+    if (state.selectedIndex >= state.tracks.length) state.selectedIndex = state.tracks.length - 1;
+    if (state.selectedIndex === idx) state.selectedIndex = Math.max(0, idx - 1);
+    log("info", `Đã bỏ khỏi danh sách hiện tại: ${removed.relPath}`);
+    renderList();
+  }
+
+  function addTrackToQuickPlaylist(idx){
+    const t = state.tracks[idx];
+    if (!t) return;
+    if (!state.playlists.length) state.playlists.push({id:'quick', name:'Yêu thích nhanh', items:[]});
+    const pl = state.playlists[0];
+    if (!pl.items.includes(t.relPath)) pl.items.push(t.relPath);
+    log("info", `Đã thêm vào playlist '${pl.name}': ${t.relPath}`);
+  }
+
+  function openTrackMenu(idx, x, y){
+    closeTrackMenu();
+    const menu = document.createElement('div');
+    menu.className = 'trackMenu';
+    menu.innerHTML = `
+      <button data-act="remove">🗑️ Bỏ khỏi danh sách hiện tại</button>
+      <button data-act="playlist">➕ Thêm vào playlist nhanh</button>
+      <button data-act="play">▶️ Phát ngay</button>
+    `;
+    menu.style.left = `${Math.max(10, x - 180)}px`;
+    menu.style.top = `${Math.max(10, y + 8)}px`;
+    menu.addEventListener('click', (e) => {
+      const act = e.target?.dataset?.act;
+      if (act === 'remove') removeTrackFromCurrentList(idx);
+      if (act === 'playlist') addTrackToQuickPlaylist(idx);
+      if (act === 'play') playIndex(idx, {user:true});
+      closeTrackMenu();
+    });
+    document.body.appendChild(menu);
+    state.trackMenuEl = menu;
+  }
+
 
   // ====== Playback
   function updateModeBadges(){
@@ -1209,6 +1326,10 @@
     art.appendChild(artHint);
     artHint.style.display = "block";
   }
+  function showVinyl(){
+    art.innerHTML = '<div class="vinyl" aria-label="Đĩa nhạc đang quay"></div>';
+    artHint.style.display = "none";
+  }
   function setArtFromBlob(key, blob, mime){
     try{
       // reuse existing objectURL if any
@@ -1231,14 +1352,17 @@
     const info = [a, al].filter(Boolean).join(" • ");
     npSub.textContent = t ? (info || `.${t.ext||""} • ${(t.size||0).toLocaleString()} bytes`) : "—";
     npPath.textContent = t ? t.relPath : "—";
-    npStatus.textContent = !t ? "—" : (st ? (st.ok ? "OK" : "FAIL") : "Chưa scan");
+    const health = t ? trackHealth(t) : null;
+    npStatus.textContent = !t ? "—" : health.label;
     npHint.textContent = !t ? "—"
-      : (st && !st.ok ? "Mở Log để xem lỗi + thử đổi codec/định dạng." :
-          (t.canPlayHint ? `canPlayType: ${t.canPlayHint}` : "Nếu không phát, bật Deep decode check rồi Re-scan changed."));
+      : (st && !st.ok ? `Note: ${st.detail || "Mở Log để xem lỗi."}`
+          : `Note: ${health.note}`);
 
     // cover
     if (t && st?.coverBlob){
       setArtFromBlob(trackKey(state.currentLibId, t.relPath), st.coverBlob, st.coverMime||"image/jpeg");
+    } else if (t) {
+      showVinyl();
     } else {
       clearArt();
     }
@@ -1510,6 +1634,7 @@
     state.selectedIndex = -1;
     state.playingIndex = -1;
     clearArt();
+    updateNowPlayingUI(null);
 
     if (!lib){
       listMeta.textContent = "Chưa có";
@@ -1983,6 +2108,26 @@
     audio.removeAttribute("src");
     renderList();
     log("info", "Đã remove library khỏi app.");
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!state.trackMenuEl) return;
+    if (!state.trackMenuEl.contains(e.target)) closeTrackMenu();
+  });
+
+  art.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    art.style.borderColor = 'var(--accent)';
+  });
+  art.addEventListener('dragleave', () => {
+    art.style.borderColor = 'rgba(255, 107, 0, 0.2)';
+  });
+  art.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    art.style.borderColor = 'rgba(255, 107, 0, 0.2)';
+    const idx = Number(e.dataTransfer?.getData('text/track-index'));
+    if (Number.isInteger(idx) && idx >= 0) await playIndex(idx, {user:true});
   });
 
   // Drag & drop (portable)
