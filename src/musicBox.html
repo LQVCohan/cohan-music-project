@@ -740,12 +740,35 @@
 
   const LAST_FOLDER_KEY = "musicbox:lastPersistentFolder";
 
-  function saveLastPersistentFolderLabel(label){
-    try{ localStorage.setItem(LAST_FOLDER_KEY, label || ""); }catch{}
+  function saveLastPersistentFolderInfo(info){
+    try{
+      const payload = {
+        label: info?.label || "",
+        libId: info?.libId || "",
+        connectedAt: Date.now()
+      };
+      localStorage.setItem(LAST_FOLDER_KEY, JSON.stringify(payload));
+    } catch {}
   }
 
-  function readLastPersistentFolderLabel(){
-    try{ return localStorage.getItem(LAST_FOLDER_KEY) || ""; }catch{ return ""; }
+  function readLastPersistentFolderInfo(){
+    try{
+      const raw = localStorage.getItem(LAST_FOLDER_KEY);
+      if (!raw) return {label:"", libId:""};
+      try{
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object"){
+          return {
+            label: typeof parsed.label === "string" ? parsed.label : "",
+            libId: typeof parsed.libId === "string" ? parsed.libId : ""
+          };
+        }
+      } catch {
+        // backward compatible with old format: plain text folder name
+        return {label: raw, libId: ""};
+      }
+    } catch {}
+    return {label:"", libId:""};
   }
 
   async function verifyPermission(handle, withWrite=false, request=false){
@@ -1549,8 +1572,8 @@
     updateNowPlayingUI(null);
 
     if (!lib){
-      const remembered = readLastPersistentFolderLabel();
-      listMeta.textContent = remembered ? `Chưa kết nối • Folder gần nhất: ${remembered}` : "Chưa có";
+      const remembered = readLastPersistentFolderInfo();
+      listMeta.textContent = remembered.label ? `Chưa kết nối • Folder gần nhất: ${remembered.label}` : "Chưa có";
       scanBadge.textContent = "—";
       renderList();
       return;
@@ -1649,7 +1672,7 @@
       alert("Không lưu được folder handle để nhớ lần sau (trình duyệt hạn chế). Bạn vẫn dùng được trong phiên này.");
     }
 
-    saveLastPersistentFolderLabel(rootName);
+    saveLastPersistentFolderInfo({label: rootName, libId});
 
     await loadLibs();
     state.currentLibId = libId;
@@ -1743,7 +1766,7 @@
     }
 
     listMeta.textContent = `Persistent: ${lib.name} • ${state.tracks.length} tracks • snapshot ${lib.snapshotHash?.slice(0,6) || "—"}`;
-    saveLastPersistentFolderLabel(lib.name || "");
+    saveLastPersistentFolderInfo({label: lib.name || "", libId: lib.id || ""});
     scanBadge.textContent = "Sẵn sàng";
   }
 
@@ -1999,7 +2022,9 @@
     await loadLibs();
     state.libs = state.libs.filter(x => x.kind === "persistent");
     const last = await getSetting("lastLibId", "");
+    const remembered = readLastPersistentFolderInfo();
     if (last && state.libs.some(x=>x.id===last)) state.currentLibId = last;
+    else if (remembered.libId && state.libs.some(x=>x.id===remembered.libId)) state.currentLibId = remembered.libId;
     else state.currentLibId = state.libs[0]?.id || "";
 
     renderLibSelect();
@@ -2008,9 +2033,8 @@
     if (state.currentLibId){
       await setCurrentLib(state.currentLibId);
     } else {
-      const remembered = readLastPersistentFolderLabel();
-      if (remembered){
-        listMeta.textContent = `Chưa kết nối • Folder gần nhất: ${remembered}`;
+      if (remembered.label){
+        listMeta.textContent = `Chưa kết nối • Folder gần nhất: ${remembered.label}`;
       }
       renderList();
     }
