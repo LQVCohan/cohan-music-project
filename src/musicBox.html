@@ -1511,7 +1511,9 @@
   }
 
   async function scanChanged(lib, snapshot, {onlyChanged, epoch=state.activeLibraryEpoch}){
-    if (state.scanning) return;
+    if (epoch !== state.activeLibraryEpoch) return;
+    // A canceled scan may still be unwinding; it must not block a new library.
+    if (state.scanning && !state.scanAbort.aborted) return;
     state.scanning = true;
     state.scanAbort = {aborted:false};
     const abort = state.scanAbort;
@@ -1527,7 +1529,10 @@
       if (!onlyChanged || changed) todo.push(t);
     }
 
-    if (epoch !== state.activeLibraryEpoch){ state.scanning = false; return; }
+    if (epoch !== state.activeLibraryEpoch){
+      if (state.scanAbort === abort) state.scanning = false;
+      return;
+    }
     if (!todo.length){
       scanBadge.textContent = "Không cần scan";
       log("info", "Không có file nào cần scan lại.");
@@ -1628,10 +1633,13 @@
     };
 
     await Promise.all(Array.from({length: CONC}, worker));
-    if (epoch !== state.activeLibraryEpoch || abort.aborted){ state.scanning = false; return; }
+    if (epoch !== state.activeLibraryEpoch || abort.aborted){
+      if (state.scanAbort === abort) state.scanning = false;
+      return;
+    }
     await hydrateStatusesOnly(lib.id, epoch);
     if (epoch !== state.activeLibraryEpoch) return;
-    state.scanning = false;
+    if (state.scanAbort === abort) state.scanning = false;
     scanBadge.textContent = abort.aborted ? "Đã hủy" : "Hoàn tất scan";
     log("info", abort.aborted ? "Đã hủy scan." : "Hoàn tất scan.");
     renderList();
