@@ -1518,7 +1518,8 @@
     const pieces = [];
     for(let start=0;start<playlist.items.length;start+=perPart) pieces.push(playlist.items.slice(start,start+perPart));
     for(let i=0;i<pieces.length;i++){
-      const name = uniquePlaylistName(playlist.name + " · Phần " + (i+1));
+      const suffix = " · Phần " + (i+1);
+      const name = uniquePlaylistName(playlist.name.slice(0,52-suffix.length) + suffix);
       const item = {id:newPlaylistId(),name,items:pieces[i]};
       state.playlists.push(item);
       created.push(item);
