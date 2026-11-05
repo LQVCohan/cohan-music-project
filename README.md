@@ -17,7 +17,7 @@ Các file giao diện chính: `src/musicBox.html` và `src/stage3.css`.
 |---|---|
 | Mở thư viện nhạc | **Chọn thư mục nhạc** |
 | Tìm bài hát | Gõ tên bài hoặc ca sĩ vào ô tìm kiếm |
-| Phát bài hát | **Nhấn đúp** lên bài hoặc dùng nút ▶ ở danh sách yêu thích |
+| Phát bài hát | **Nhấn một lần** lên bài hoặc dùng nút ▶ ở danh sách yêu thích |
 | Phát/tạm dừng | Nút ▶ / ⏸ ở thanh điều khiển dưới cùng |
 | Phát một bài bất kỳ | **🎲 Phát ngẫu nhiên** |
 | Thay đổi chế độ phát | **🔀 Trộn** và **🔁 Lặp** |
