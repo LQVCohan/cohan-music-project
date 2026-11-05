@@ -21,7 +21,7 @@ Các file giao diện chính: `src/musicBox.html` và `src/stage3.css`.
 | Phát/tạm dừng | Nút ▶ / ⏸ ở thanh điều khiển dưới cùng |
 | Phát một bài bất kỳ | **🎲 Phát ngẫu nhiên** |
 | Thay đổi chế độ phát | **🔀 Trộn** và **🔁 Lặp** |
-| Lưu bài yêu thích | Chọn danh sách yêu thích, sau đó nhấn **♥ Lưu** cạnh bài |
+| Lưu bài yêu thích | Chọn danh sách yêu thích, sau đó nhấn **♡ Lưu** cạnh bài |
 | Phát bài kế tiếp | Nhấn **⏭ Tiếp** cạnh bài |
 | Xếp bài vào cuối danh sách chờ | Nhấn **＋ Xếp** cạnh bài |
 
