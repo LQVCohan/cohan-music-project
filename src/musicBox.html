@@ -1088,29 +1088,25 @@
   }
 
   // ====== Rendering
-  function statusIcon(t){
-    const st = t.status;
-    if (!st) return `<span class="ico warn" title="Chưa scan/cached">…</span>`;
-    if (st.ok) return `<span class="ico ok" title="${escapeHtml(st.detail||"OK")}">✓</span>`;
-    return `<span class="ico bad" title="${escapeHtml(st.detail||"Không phát được")}">×</span>`;
+  function cleanMusicFilename(filename){
+    let name = String(filename || "").replace(/\.(?:mp3|m4a|aac|wav|ogg|oga|opus|weba|flac|mp4)$/i, "");
+    name = name.replace(/^(?:YTSave|YTDown(?:\.com)?)_YouTube[_-]?/i, "");
+    name = name.replace(/_Media_[^/]*$/i, "");
+    name = name.replace(/[_]+/g, " ").replace(/[-]+/g, " ").replace(/\s+/g, " ").trim();
+    return name || String(filename || "Bài hát chưa có tên");
   }
 
   function displayTitle(t){
-    const st = t.status;
-    const title = st?.title || "";
-    const artist = st?.artist || "";
-    if (title && artist) return `${title} — ${artist}`;
-    if (title) return title;
-    return t.name;
+    return t.status?.title?.trim() || cleanMusicFilename(t.name);
   }
 
   function displaySub(t){
-    const st = t.status;
-    const album = st?.album || "";
-    const parts = [];
-    if (album) parts.push(album);
-    parts.push(t.relPath);
-    return parts.join(" • ");
+    const artist = String(t.status?.artist || "").trim();
+    const album = String(t.status?.album || "").trim();
+    if (artist && album) return artist + " • " + album;
+    if (artist || album) return artist || album;
+    const folders = String(t.relPath || "").split("/");
+    return folders.length > 1 ? folders[folders.length-2] : "";
   }
 
   function getFilteredTracks(){
@@ -1123,7 +1119,7 @@
         t.name, t.relPath,
         st?.title||"", st?.artist||"", st?.album||""
       ].join(" ").toLowerCase();
-      if (!s || hay.includes(s)) arr.push(Object.assign({_index:i}, t));
+      if (!s || hay.includes(s) || cleanMusicFilename(t.name).toLowerCase().includes(s)) arr.push(Object.assign({_index:i}, t));
     }
     if (state.sortMode !== "path"){
       const collator = new Intl.Collator("vi", {sensitivity:"base", numeric:true});
@@ -1146,17 +1142,17 @@
       div.innerHTML = `
         <div style="font-weight:650;margin-bottom:6px">Chưa có bài hát</div>
         <div class="muted tiny">
-          - Dùng <b>Connect Folder (Persistent)</b> để app nhớ folder lần sau (File System Access API; secure context).
+          Nhấn <b>Chọn thư mục nhạc</b> để lấy các bài hát có sẵn trên máy tính.
         </div>
       `;
       list.appendChild(div);
-      listMeta.textContent = "Chưa import";
+      listMeta.textContent = "Chưa có thư viện nhạc";
       qCount.textContent = "";
       return;
     }
 
-    listMeta.textContent = `${tracks.length}/${state.tracks.length} hiển thị • Enter để phát • ↑/↓ chọn • Space play/pause`;
-    qCount.textContent = tracks.length ? `${tracks.length}` : "";
+    listMeta.textContent = `${tracks.length} / ${state.tracks.length} bài hát`;
+    qCount.textContent = q.value.trim() ? String(tracks.length) : "";
 
     tracks.forEach((t) => {
       const idx = t._index;
@@ -1167,17 +1163,17 @@
       row.dataset.idx = String(idx);
 
       const dur = (t.status?.durationSec != null) ? fmtMMSS(t.status.durationSec) : "—";
+      const sub = displaySub(t);
       row.innerHTML = `
-        <div>
-          <div class="name" title="${escapeHtml(displayTitle(t))}">${escapeHtml(displayTitle(t))}</div>
-          <div class="path" title="${escapeHtml(displaySub(t))}">${escapeHtml(displaySub(t))}</div>
+        <div class="trackMain">
+          <div class="name" title="${escapeHtml(t.name)}">${t.status && t.status.ok === false ? '<span title="Bài hát có thể bị lỗi">⚠ </span>' : ""}${escapeHtml(displayTitle(t))}</div>
+          ${sub ? `<div class="path" title="${escapeHtml(sub)}">${escapeHtml(sub)}</div>` : ""}
         </div>
         <div class="dur">${dur}</div>
-        ${statusIcon(t)}
         <div class="trackActions">
-          <button type="button" class="miniBtn" data-track-action="favorite" title="Thêm vào playlist đang chọn" aria-label="Thêm ${escapeHtml(displayTitle(t))} vào playlist">☆</button>
-          <button type="button" class="miniBtn" data-track-action="next" title="Phát ngay sau bài hiện tại" aria-label="Phát ${escapeHtml(displayTitle(t))} tiếp theo">⏭</button>
-          <button type="button" class="miniBtn" data-track-action="queue" title="Thêm vào cuối hàng đợi" aria-label="Thêm ${escapeHtml(displayTitle(t))} vào hàng đợi">＋</button>
+          <button type="button" class="miniBtn" data-track-action="favorite" title="Lưu vào danh sách yêu thích" aria-label="Lưu ${escapeHtml(displayTitle(t))}">♥ Lưu</button>
+          <button type="button" class="miniBtn" data-track-action="next" title="Phát ngay sau bài hiện tại" aria-label="Phát tiếp ${escapeHtml(displayTitle(t))}">⏭ Tiếp</button>
+          <button type="button" class="miniBtn" data-track-action="queue" title="Đưa vào cuối danh sách chờ" aria-label="Xếp ${escapeHtml(displayTitle(t))} vào danh sách chờ">＋ Xếp</button>
         </div>
       `;
       row.querySelectorAll("[data-track-action]").forEach(btn => btn.addEventListener("click", e => {
@@ -1299,15 +1295,13 @@
     btnDeletePlaylist.disabled = !enabled || state.playlists.length < 2;
     btnAddSelectedPlaylist.disabled = !enabled || state.selectedIndex < 0;
     btnSplitPlaylist.disabled = !enabled || pl.items.length < 2;
-    btnExportPlaylist.disabled = !enabled || pl.items.length < 1;
-    btnImportPlaylist.disabled = !state.currentLibId;
 
     if (!pl){
       playlistItems.textContent = state.currentLibId ? "Chưa có playlist." : "Hãy kết nối thư mục nhạc.";
       return;
     }
     if (!pl.items.length){
-      playlistItems.textContent = "Playlist trống. Chọn bài và nhấn ☆ để thêm.";
+      playlistItems.textContent = "Danh sách này chưa có bài. Chọn bài ở bên trái rồi nhấn ♥ Lưu.";
       return;
     }
     playlistItems.innerHTML = pl.items.map((path, i) => {
@@ -1317,11 +1311,10 @@
       return `<div class="playlistItem">
         <span class="entryName ${t ? "" : "missing"}" title="${escapeHtml(label)}">${i+1}. ${escapeHtml(label)}</span>
         <span class="utilityActions">
-          <button class="miniBtn" data-pl-action="play" data-pos="${i}" title="Phát bài hát" ${t?"":"disabled"}>▶</button>
-          <button class="miniBtn" data-pl-action="queue" data-pos="${i}" title="Thêm vào hàng đợi" ${t?"":"disabled"}>＋</button>
-          <button class="miniBtn" data-pl-action="up" data-pos="${i}" title="Đưa lên" ${i?"":"disabled"}>↑</button>
-          <button class="miniBtn" data-pl-action="down" data-pos="${i}" title="Đưa xuống" ${i<pl.items.length-1?"":"disabled"}>↓</button>
-          <button class="miniBtn" data-pl-action="remove" data-pos="${i}" title="Bỏ khỏi playlist">×</button>
+          <button class="miniBtn" data-pl-action="play" data-pos="${i}" title="Phát bài hát này" ${t?"":"disabled"}>▶ Phát</button>
+          <button class="miniBtn" data-pl-action="up" data-pos="${i}" title="Đưa bài lên trên" ${i?"":"disabled"}>↑</button>
+          <button class="miniBtn" data-pl-action="down" data-pos="${i}" title="Đưa bài xuống dưới" ${i<pl.items.length-1?"":"disabled"}>↓</button>
+          <button class="miniBtn" data-pl-action="remove" data-pos="${i}" title="Bỏ bài khỏi danh sách">×</button>
         </span>
       </div>`;
     }).join("");
@@ -1341,7 +1334,7 @@
     queueCount.textContent = "(" + state.queue.length + ")";
     btnClearQueue.disabled = !state.queue.length;
     if (!state.queue.length){
-      queueItems.textContent = "Hàng đợi trống. Dùng nút ＋ hoặc ⏭ bên cạnh bài hát.";
+      queueItems.textContent = "Chưa có bài chờ phát. Nhấn ⏭ Tiếp hoặc ＋ Xếp bên cạnh bài hát.";
       return;
     }
     queueItems.innerHTML = state.queue.map((path, i) => {
@@ -1445,87 +1438,13 @@
     return created;
   }
 
-  function playlistExportData(playlist){
-    if (!playlist) throw new Error("Chưa chọn playlist.");
-    return {
-      format:"cohan-playlist",
-      version:1,
-      exportedAt:new Date().toISOString(),
-      playlist:{
-        name:playlist.name,
-        tracks:playlist.items.map(path=>{
-          const index=trackIndexByPath(path);
-          const track=index>=0 ? state.tracks[index] : null;
-          return {relPath:path,name:track?.name || path.split("/").pop() || "",title:track?.status?.title || ""};
-        })
-      }
-    };
-  }
-
-  function exportPlaylistFile(){
-    const playlist=selectedPlaylist();
-    if (!state.currentLibId || !playlist || !playlist.items.length) throw new Error("Chưa có bài trong playlist để chia sẻ.");
-    const doc=playlistExportData(playlist);
-    const safeFileName=playlist.name.replace(/[\\/:*?"<>|]/g,"_").slice(0,60) || "playlist";
-    const blob=new Blob([JSON.stringify(doc,null,2)],{type:"application/json"});
-    const url=URL.createObjectURL(blob);
-    const link=document.createElement("a");
-    link.href=url;
-    link.download=safeFileName+".cohan-playlist.json";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),1500);
-    showToast("Đã xuất " + playlist.items.length + " bài. Bạn có thể gửi file JSON cho máy khác.");
-    return doc;
-  }
-
-  function importPlaylistData(documentData){
-    if (!state.currentLibId) throw new Error("Hãy kết nối thư viện nhạc trước khi nhập.");
-    if (!documentData || documentData.format !== "cohan-playlist" || documentData.version !== 1 ||
-        !documentData.playlist || !Array.isArray(documentData.playlist.tracks)){
-      throw new Error("File không đúng định dạng playlist COHAN (phiên bản 1).");
-    }
-    const incoming=documentData.playlist.tracks;
-    if (!incoming.length || incoming.length>10000) throw new Error("Playlist nhập phải có từ 1 đến 10.000 bài.");
-
-    const exact=new Map(state.tracks.map(t=>[t.relPath,t]));
-    const byFilename=new Map();
-    for (const t of state.tracks){
-      const key=t.name.toLocaleLowerCase("vi");
-      if (!byFilename.has(key)) byFilename.set(key,t);
-      else byFilename.set(key,null); // ambiguous name: never guess the wrong file
-    }
-    const items=[],known=new Set();
-    let missing=0;
-    for (const incomingTrack of incoming){
-      const rawPath=typeof incomingTrack === "string" ? incomingTrack : incomingTrack?.relPath;
-      if (typeof rawPath!=="string" || !rawPath.trim() || rawPath.length>1024){missing++;continue;}
-      let matched=exact.get(rawPath);
-      if (!matched){
-        const fileName=rawPath.replace(/\\/g,"/").split("/").pop().toLocaleLowerCase("vi");
-        matched=byFilename.get(fileName);
-      }
-      if (!matched){missing++;continue;}
-      if (!known.has(matched.relPath)){known.add(matched.relPath);items.push(matched.relPath);}
-    }
-    if (!items.length) throw new Error("Không tìm thấy bài hát tương ứng trong thư viện hiện tại.");
-    const requestedName=String(documentData.playlist.name || "Playlist được chia sẻ").slice(0,60);
-    const imported={id:newPlaylistId(),name:uniquePlaylistName(requestedName),items};
-    state.playlists.push(imported);
-    state.activePlaylistId=imported.id;
-    renderSubPlaylist();
-    persistPlaylists();
-    log("info","Đã nhập playlist '" + imported.name + "' (" + items.length + " bài, " + missing + " bài thiếu).");
-    return {playlist:imported,missing,matched:items.length};
-  }
-
   function totalDurationSec(){
     return state.tracks.reduce((sum,t)=>sum + (Number(t.status?.durationSec)||0), 0);
   }
 
   function updateQuickRandomLabel(){
-    btnQuickRandom.textContent = `🎲 Phát ngẫu nhiên ngay (${fmtMMSS(totalDurationSec())})`;
+    btnQuickRandom.textContent = "🎲 Phát ngẫu nhiên";
+    btnQuickRandom.disabled = state.tracks.length === 0;
   }
 
   function playRandomNow(){
@@ -1541,9 +1460,12 @@
 
   // ====== Playback order
   function updateModeBadges(){
-    btnShuffle.textContent = `🔀 ${state.shuffle ? "Bật" : "Tắt"}`;
-    btnRepeat.textContent = `🔁 ${state.repeat}`;
-    modeBadge.textContent = `Tự động: Shuffle ${state.shuffle?"On":"Off"} • Repeat ${state.repeat}`;
+    const repeatText = {off:"Tắt", all:"Tất cả", one:"Một bài"};
+    btnShuffle.textContent = `🔀 Trộn: ${state.shuffle ? "Bật" : "Tắt"}`;
+    btnShuffle.setAttribute("aria-pressed", String(state.shuffle));
+    btnRepeat.textContent = `🔁 Lặp: ${repeatText[state.repeat] || "Tắt"}`;
+    btnRepeat.setAttribute("aria-label", "Chế độ lặp: " + (repeatText[state.repeat] || "Tắt"));
+    modeBadge.textContent = `Trộn bài: ${state.shuffle ? "Bật" : "Tắt"} • Lặp: ${repeatText[state.repeat] || "Tắt"}`;
   }
 
   // A shuffle cycle contains each track at most once. The currently playing
@@ -1628,22 +1550,13 @@
 
   function updateNowPlayingUI(t){
     const st = t?.status;
-    npTitle.textContent = t ? (st?.title || t.name) : "—";
-    const a = st?.artist || "";
-    const al = st?.album || "";
-    const info = [a, al].filter(Boolean).join(" • ");
-    npSub.textContent = t ? (info || `.${t.ext||""} • ${(t.size||0).toLocaleString()} bytes`) : "—";
-    npPath.textContent = t ? t.relPath : "—";
-    const health = t ? trackHealth(t) : null;
-    npStatus.textContent = !t ? "—" : health.label;
-    npHint.textContent = !t ? "—"
-      : (st && !st.ok ? `Note: ${st.detail || "Mở Log để xem lỗi."}`
-          : `Note: ${health.note}`);
+    npTitle.textContent = t ? displayTitle(t) : "Chưa chọn bài hát";
+    const details = [st?.artist,st?.album].filter(Boolean).join(" • ");
+    npSub.textContent = t ? (details || "Đang phát từ thư viện nhạc") : "Nhấn đúp vào bài hát để phát";
 
-    // cover
     if (t && st?.coverBlob){
-      setArtFromBlob(trackKey(state.currentLibId, t.relPath), st.coverBlob, st.coverMime||"image/jpeg");
-    } else if (t) {
+      setArtFromBlob(trackKey(state.currentLibId, t.relPath), st.coverBlob, st.coverMime || "image/jpeg");
+    } else if (t){
       showVinyl();
     } else {
       clearArt();
@@ -2322,38 +2235,6 @@
       showToast("Đã tạo " + parts.length + " playlist mới. Playlist gốc không thay đổi.");
     } catch(err) { showToast(err.message || String(err),true); }
   });
-
-  btnExportPlaylist.addEventListener("click", () => {
-    try { exportPlaylistFile(); }
-    catch(err) { showToast(err.message || String(err),true); }
-  });
-
-  btnImportPlaylist.addEventListener("click", () => {
-    if (state.currentLibId) playlistImportFile.click();
-  });
-
-  playlistImportFile.addEventListener("change", async () => {
-    const file=playlistImportFile.files?.[0];
-    if (!file) return;
-    const epoch=state.activeLibraryEpoch;
-    const libId=state.currentLibId;
-    try {
-      if (file.size>1024*1024) throw new Error("File JSON vượt 1 MB; không thể nhập.");
-      const data=JSON.parse(await file.text());
-      if (epoch !== state.activeLibraryEpoch || libId !== state.currentLibId){
-        throw new Error("Thư viện đã thay đổi trong lúc đọc file. Hãy nhập lại.");
-      }
-      const result=importPlaylistData(data);
-      showToast("Đã nhập " + result.matched + " bài vào '" + result.playlist.name + "'." +
-        (result.missing ? " Bỏ qua " + result.missing + " bài chưa tìm thấy." : ""));
-    } catch(err) {
-      showToast("Không thể nhập playlist: " + (err?.message || String(err)),true);
-    } finally {
-      playlistImportFile.value="";
-    }
-  });
-
-
 
   playlistItems.addEventListener("click", e => {
     const button = e.target.closest("[data-pl-action]");
