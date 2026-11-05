@@ -150,7 +150,7 @@
         .ico.warn { background: rgba(255, 165, 2, 0.15); color: var(--warn); }
 
         /* NOW PLAYING SECTION */
-        .now { display: grid; grid-template-rows: auto 1fr auto; min-height: 0; }
+        .now { display:flex; flex-direction:column; min-height:0; overflow-y:auto; }
         .now .body { padding: 24px; display: grid; gap: 16px; align-content: start; }
         .art {
             width: 100%; aspect-ratio: 1/1; border-radius: 24px;
@@ -216,7 +216,9 @@
         .miniBtn:disabled { opacity:.3; cursor:not-allowed; }
         .compactSelect { background:var(--panel2); color:var(--text); border:1px solid var(--line); padding:7px; border-radius:9px; max-width:190px; }
         .trackActions .miniBtn { padding:5px 7px; }
-        .now .body { overflow-y:auto; min-height:0; }
+        .now .body { overflow:visible; min-height:0; flex-shrink:0; }
+        .now .playlistPanel, .now .queuePanel { flex-shrink:0; }
+        .now .art { max-width: 330px; margin-inline:auto; }
         @media (max-width: 650px){ .row {grid-template-columns: minmax(0,1fr) 45px 22px; padding:8px;} .trackActions {grid-column:1/-1;} .titlebar { gap:8px;} }
 
         /* DIALOGS */
@@ -2155,6 +2157,8 @@
       await hydrateStatusesOnly(lib.id, epoch);
       if (epoch !== state.activeLibraryEpoch) return;
       renderList();
+      renderSubPlaylist();
+      renderQueue();
     } else {
       scanBadge.textContent = lib.snapshotHash ? "Có thay đổi — scan phần đổi" : "Lần đầu — scan";
       await scanChanged(lib, snap, {onlyChanged: !!lib.snapshotHash, epoch});
@@ -2170,6 +2174,8 @@
     }
 
     if (epoch !== state.activeLibraryEpoch) return;
+    renderSubPlaylist();
+    renderQueue();
     listMeta.textContent = `Persistent: ${lib.name} • ${state.tracks.length} tracks • snapshot ${lib.snapshotHash?.slice(0,6) || "—"}`;
     saveLastPersistentFolderInfo({label: lib.name || "", libId: lib.id || ""});
     scanBadge.textContent = "Sẵn sàng";
