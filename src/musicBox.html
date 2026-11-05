@@ -547,7 +547,12 @@
     // artwork cache for current session (object URLs)
     coverUrlByKey: new Map(), // k -> objectURL
 
-    playlists: []
+    playlists: [],
+    activeLibraryEpoch: 0,
+    playRequestId: 0,
+    playbackErrorTimer: null,
+    failedTrackKeys: new Set(),
+    scanPromise: null
   };
 
   // ====== Small utilities
@@ -1231,10 +1236,12 @@
   function playRandomNow(){
     if (!state.tracks.length) return;
     state.shuffle = true;
-    if (!state.shuffleOrder.length || state.shuffleOrder.length !== state.tracks.length) buildShuffleOrder();
-    state.shufflePos = 0;
+    buildShuffleOrder();
+    // A fresh shuffle should start from its first entry, not the position of
+    // the previously playing track.
+    state.shufflePos = 1;
     updateModeBadges();
-    playIndex(nextIndex(), {user:true});
+    playIndex(state.shuffleOrder[0], {user:true});
   }
 
   // ====== Playback
@@ -1253,16 +1260,17 @@
     state.shuffleOrder = a;
     state.shufflePos = 0;
   }
-  function nextIndex(){
+  function nextIndex(ignoreRepeatOne=false){
     const n = state.tracks.length;
     if (!n) return -1;
-    if (state.repeat === "one" && state.playingIndex >= 0) return state.playingIndex;
+    if (!ignoreRepeatOne && state.repeat === "one" && state.playingIndex >= 0) return state.playingIndex;
 
     if (state.shuffle){
       if (!state.shuffleOrder.length || state.shuffleOrder.length !== n) buildShuffleOrder();
       if (state.playingIndex >= 0){
         const pos = state.shuffleOrder.indexOf(state.playingIndex);
-        if (pos >= 0) state.shufflePos = pos+1;
+        // Do not rewind the shuffle cursor when skipping an unplayable track.
+        if (pos >= 0 && state.shufflePos <= pos) state.shufflePos = pos+1;
       }
       if (state.shufflePos >= n){
         if (state.repeat === "all"){
@@ -1345,39 +1353,130 @@
     return URL.createObjectURL(blob);
   }
 
+  function clearPlaybackErrorTimer(){
+    if (state.playbackErrorTimer !== null){
+      clearTimeout(state.playbackErrorTimer);
+      state.playbackErrorTimer = null;
+    }
+  }
+
+  function clearAudioSource(){
+    audio.pause();
+    const oldUrl = audio.dataset.url;
+    audio.removeAttribute("src");
+    delete audio.dataset.url;
+    try { audio.load(); } catch {}
+    if (oldUrl) URL.revokeObjectURL(oldUrl);
+  }
+
+  function stopPlayback(){
+    // Invalidate any in-flight getFile()/play() calls before clearing the source.
+    state.playRequestId++;
+    clearPlaybackErrorTimer();
+    clearAudioSource();
+    state.playingIndex = -1;
+    btnPlay.textContent = "▶️";
+    seek.value = "0";
+    tCur.textContent = "00:00";
+    tDur.textContent = "00:00";
+  }
+
+  function clearCoverUrls(){
+    for (const url of state.coverUrlByKey.values()){
+      try { URL.revokeObjectURL(url); } catch {}
+    }
+    state.coverUrlByKey.clear();
+  }
+
+  function beginLibraryChange(){
+    const epoch = ++state.activeLibraryEpoch;
+    state.scanAbort.aborted = true;
+    stopPlayback();
+    clearCoverUrls();
+    state.failedTrackKeys.clear();
+    state.tracks = [];
+    state.handleMap.clear();
+    state.shuffleOrder = [];
+    state.shufflePos = 0;
+    state.selectedIndex = -1;
+    state.currentLibId = "";
+    clearArt();
+    updateNowPlayingUI(null);
+    return epoch;
+  }
+
+  function schedulePlaybackRecovery(failedIndex, requestId){
+    if (requestId !== state.playRequestId) return;
+    const failedTrack = state.tracks[failedIndex];
+    if (!failedTrack) return;
+    state.failedTrackKeys.add(trackKey(state.currentLibId, failedTrack.relPath));
+    clearPlaybackErrorTimer();
+
+    state.playbackErrorTimer = setTimeout(() => {
+      state.playbackErrorTimer = null;
+      if (requestId !== state.playRequestId) return;
+
+      const n = state.tracks.length;
+      let candidate = -1;
+      if (state.failedTrackKeys.size < n){
+        // At most n candidates; never loop indefinitely when every file fails.
+        for (let attempts=0; attempts<n; attempts++){
+          const next = nextIndex(true);
+          if (next < 0) break;
+          const item = state.tracks[next];
+          if (item && !state.failedTrackKeys.has(trackKey(state.currentLibId, item.relPath))){
+            candidate = next;
+            break;
+          }
+        }
+      }
+
+      if (candidate >= 0){
+        playIndex(candidate, {user:false});
+      } else {
+        stopPlayback();
+        log("warn", "Dừng phát: không còn bài hát hợp lệ để tự chuyển.");
+      }
+    }, 500);
+  }
+
   async function playIndex(i, {user}={user:false}){
     if (i < 0 || i >= state.tracks.length) return;
     const t = state.tracks[i];
+    const libId = state.currentLibId;
+    const requestId = ++state.playRequestId;
+    clearPlaybackErrorTimer();
+    if (user) state.failedTrackKeys.clear();
+    clearAudioSource();
+    state.playingIndex = -1;
+    btnPlay.textContent = "▶️";
 
-    // cleanup previous URL
-    if (audio.dataset.url){
-      try{ URL.revokeObjectURL(audio.dataset.url); }catch{}
-      delete audio.dataset.url;
-    }
-
-    try{
+    try {
       const url = await getBlobUrlForTrack(t);
+      // Rapid Next/Prev or library changes must not revive an obsolete request.
+      if (requestId !== state.playRequestId || libId !== state.currentLibId || state.tracks[i] !== t){
+        URL.revokeObjectURL(url);
+        return;
+      }
       audio.src = url;
       audio.dataset.url = url;
-
       state.playingIndex = i;
       selectIndex(i);
       updateNowPlayingUI(t);
 
       await audio.play();
+      if (requestId !== state.playRequestId) return;
+      state.failedTrackKeys.delete(trackKey(libId, t.relPath));
       btnPlay.textContent = "⏸";
       log("info", `Play: ${t.relPath}`);
       revealIndex(i);
     } catch(err){
+      if (requestId !== state.playRequestId) return;
       btnPlay.textContent = "▶️";
-      const msg = err?.message || String(err);
-      log("error", `Không thể phát: ${t.relPath} — ${msg}`);
-      setTimeout(() => {
-        const ni = nextIndex();
-        if (ni >= 0) playIndex(ni, {user:false});
-      }, 600);
+      log("error", `Không thể phát: ${t.relPath} — ${err?.message || String(err)}`);
+      schedulePlaybackRecovery(i, requestId);
     }
-    renderList();
+    if (requestId === state.playRequestId) renderList();
   }
 
   function pause(){
@@ -1385,8 +1484,12 @@
     btnPlay.textContent = "▶️";
   }
   async function resume(){
-    await audio.play();
-    btnPlay.textContent = "⏸";
+    try {
+      await audio.play();
+      if (!audio.paused) btnPlay.textContent = "⏸";
+    } catch (err){
+      log("warn", "Không thể tiếp tục phát: " + (err?.message || String(err)));
+    }
   }
   function togglePlay(){
     if (!audio.src) {
@@ -1577,15 +1680,12 @@
   }
 
   async function setCurrentLib(id){
+    const epoch = beginLibraryChange();
     state.currentLibId = id;
-    await setSetting("lastLibId", id);
     const lib = state.libs.find(x=>x.id===id);
-    state.tracks = [];
-    state.handleMap.clear();
-    state.selectedIndex = -1;
-    state.playingIndex = -1;
-    clearArt();
-    updateNowPlayingUI(null);
+    renderList();
+    await setSetting("lastLibId", id);
+    if (epoch !== state.activeLibraryEpoch) return;
 
     if (!lib){
       const remembered = readLastPersistentFolderInfo();
@@ -1600,8 +1700,9 @@
     updateModeBadges();
 
     const ok = lib.handle ? await verifyPermission(lib.handle, false, false) : false;
+    if (epoch !== state.activeLibraryEpoch) return;
     if (ok){
-      await loadPersistentLibrary(lib, {auto:true});
+      await loadPersistentLibrary(lib, {auto:true, epoch});
     } else {
       scanBadge.textContent = "Tự reconnect thất bại";
       alert("Không thể tự reconnect tới folder đã lưu. Vui lòng bấm Connect Folder (Persistent) để cấp lại quyền.");
@@ -1870,15 +1971,16 @@
   });
 
   audio.addEventListener("error", () => {
+    // A removed or superseded source must not initiate automatic playback.
+    if (!audio.dataset.url || audio.currentSrc !== audio.dataset.url || state.playingIndex < 0) return;
+    const requestId = state.playRequestId;
+    const i = state.playingIndex;
+    const t = state.tracks[i];
+    if (!t) return;
     const code = audio.error?.code || 0;
     const msg = audio.error?.message || "";
-    const t = state.tracks[state.playingIndex];
-    const where = t ? t.relPath : "(unknown)";
-    log("error", `Playback error: ${where} — ${mediaErrorToText(code)}${msg ? " — "+msg : ""}`, {code});
-    setTimeout(() => {
-      const ni = nextIndex();
-      if (ni >= 0) playIndex(ni, {user:false});
-    }, 600);
+    log("error", `Playback error: ${t.relPath} — ${mediaErrorToText(code)}${msg ? " — "+msg : ""}`, {code});
+    schedulePlaybackRecovery(i, requestId);
   });
 
   btnRevealCurrent.addEventListener("click", () => {
@@ -1900,26 +2002,20 @@
   btnClearLib.addEventListener("click", async () => {
     const id = state.currentLibId;
     if (!id) return;
-    const lib = state.libs.find(x=>x.id===id);
+    beginLibraryChange();
     await idbDel("libs", id);
     await clearStatusesForLib(id);
 
-    // cleanup
-    for (const u of state.coverUrlByKey.values()){ try{ URL.revokeObjectURL(u); }catch{} }
-    state.coverUrlByKey.clear();
-    clearArt();
-
+    const remembered = readLastPersistentFolderInfo();
+    if (remembered.libId === id){
+      try { localStorage.removeItem(LAST_FOLDER_KEY); } catch {}
+    }
     state.libs = state.libs.filter(x=>x.id!==id);
     state.currentLibId = state.libs[0]?.id || "";
     await setSetting("lastLibId", state.currentLibId || "");
     renderLibSelect();
-    state.tracks = [];
-    state.handleMap.clear();
-    state.selectedIndex = -1;
-    state.playingIndex = -1;
-    audio.pause();
-    audio.removeAttribute("src");
-    renderList();
+    if (state.currentLibId) await setCurrentLib(state.currentLibId);
+    else renderList();
     log("info", "Đã remove library khỏi app.");
   });
 
