@@ -323,7 +323,7 @@
                         </div>
                         <div class="currentInfo">
                             <div class="npTitle" id="npTitle">Chưa chọn bài hát</div>
-                            <div class="npSub" id="npSub">Nhấn đúp vào bài hát để phát</div>
+                            <div class="npSub" id="npSub">Nhấn vào một bài hát để phát</div>
                         </div>
                     </div>
 
@@ -1190,8 +1190,8 @@
       });
       row.addEventListener("click", () => {
         selectIndex(idx);
+        playIndex(idx, {user:true});
       });
-      row.addEventListener("dblclick", () => playIndex(idx, {user:true}));
       list.appendChild(row);
     });
   }
@@ -1297,7 +1297,7 @@
     btnSplitPlaylist.disabled = !enabled || pl.items.length < 2;
 
     if (!pl){
-      playlistItems.textContent = state.currentLibId ? "Chưa có playlist." : "Hãy kết nối thư mục nhạc.";
+      playlistItems.textContent = state.currentLibId ? "Chưa có danh sách nhạc." : "Hãy chọn thư mục nhạc trước.";
       return;
     }
     if (!pl.items.length){
@@ -1415,12 +1415,12 @@
 
   // Splitting clones tracks into newly named playlists; source playlist stays untouched.
   function splitPlaylist(playlist, perPart){
-    if (!state.currentLibId || !playlist || playlist.items.length < 2) throw new Error("Playlist cần có ít nhất 2 bài.");
+    if (!state.currentLibId || !playlist || playlist.items.length < 2) throw new Error("Danh sách cần có ít nhất 2 bài để tách.");
     if (!Number.isSafeInteger(perPart) || perPart < 1 || perPart >= playlist.items.length){
       throw new Error("Số bài mỗi phần phải từ 1 đến " + (playlist.items.length-1) + ".");
     }
     const count = Math.ceil(playlist.items.length/perPart);
-    if (count > 30) throw new Error("Tối đa 30 playlist mỗi lần chia. Hãy tăng số bài mỗi phần.");
+    if (count > 30) throw new Error("Mỗi lần chỉ tạo tối đa 30 danh sách. Hãy tăng số bài trong mỗi phần.");
     const created = [];
     const pieces = [];
     for(let start=0;start<playlist.items.length;start+=perPart) pieces.push(playlist.items.slice(start,start+perPart));
@@ -1552,7 +1552,7 @@
     const st = t?.status;
     npTitle.textContent = t ? displayTitle(t) : "Chưa chọn bài hát";
     const details = [st?.artist,st?.album].filter(Boolean).join(" • ");
-    npSub.textContent = t ? (details || "Đang phát từ thư viện nhạc") : "Nhấn đúp vào bài hát để phát";
+    npSub.textContent = t ? (details || "Đang phát từ thư viện nhạc") : "Nhấn vào một bài hát để phát";
 
     if (t && st?.coverBlob){
       setArtFromBlob(trackKey(state.currentLibId, t.relPath), st.coverBlob, st.coverMime || "image/jpeg");
@@ -1935,7 +1935,7 @@
 
     if (!lib){
       const remembered = readLastPersistentFolderInfo();
-      listMeta.textContent = remembered.label ? `Chưa kết nối • Folder gần nhất: ${remembered.label}` : "Chưa có";
+      listMeta.textContent = remembered.label ? `Chưa kết nối • Thư mục gần nhất: ${remembered.label}` : "Chưa có";
       scanBadge.textContent = "—";
       renderList();
       return;
@@ -2039,7 +2039,7 @@
       await idbPut("libs", lib);
     } catch (e){
       log("error", "Không lưu được directory handle vào IndexedDB (trình duyệt hạn chế).", {err:String(e)});
-      alert("Không lưu được folder handle để nhớ lần sau (trình duyệt hạn chế). Bạn vẫn dùng được trong phiên này.");
+      alert("Trình duyệt không thể ghi nhớ thư mục này. Bạn vẫn có thể nghe nhạc trong lần mở hiện tại.");
     }
 
     const epoch = beginLibraryChange();
@@ -2157,7 +2157,7 @@
 
   function applySearchCount(){
     const tracks = getFilteredTracks();
-    qCount.textContent = tracks.length ? `${tracks.length}` : "";
+    qCount.textContent = q.value.trim() ? String(tracks.length) : "";
   }
 
   // ====== UI events
@@ -2191,7 +2191,7 @@
     const clean = name.trim().slice(0,60);
     if (!clean) return;
     if (state.playlists.some(p => p.name.toLowerCase() === clean.toLowerCase())){
-      alert("Tên playlist đã tồn tại.");
+      alert("Tên danh sách này đã được sử dụng.");
       return;
     }
     const id = "playlist-" + Date.now() + "-" + Math.random().toString(36).slice(2,8);
@@ -2534,7 +2534,7 @@
       await setCurrentLib(state.currentLibId);
     } else {
       if (remembered.label){
-        listMeta.textContent = `Chưa kết nối • Folder gần nhất: ${remembered.label}`;
+        listMeta.textContent = `Chưa kết nối • Thư mục gần nhất: ${remembered.label}`;
       }
       renderList();
     }
