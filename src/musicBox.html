@@ -584,6 +584,7 @@
     repeat: "off", // off|all|one
     shuffleOrder: [],
     shufflePos: 0,
+    shuffleReady: false,
 
     scanning: false,
     scanAbort: {aborted:false},
@@ -1467,64 +1468,76 @@
   function playRandomNow(){
     if (!state.tracks.length) return;
     state.shuffle = true;
-    buildShuffleOrder();
-    // A fresh shuffle should start from its first entry, not the position of
-    // the previously playing track.
-    state.shufflePos = 1;
+    // Quick random intentionally starts a new unbiased shuffle cycle.
+    buildShuffleOrder(-1);
     updateModeBadges();
-    playIndex(state.shuffleOrder[0], {user:true});
+    setSetting("shuffle", true).catch(err => log("warn", "Không lưu được Shuffle.", {err:String(err)}));
+    const index = takeShuffleIndex();
+    if (index >= 0) playIndex(index, {user:true});
   }
 
-  // ====== Playback
+  // ====== Playback order
   function updateModeBadges(){
     btnShuffle.textContent = `🔀 ${state.shuffle ? "Bật" : "Tắt"}`;
     btnRepeat.textContent = `🔁 ${state.repeat}`;
     modeBadge.textContent = `Tự động: Shuffle ${state.shuffle?"On":"Off"} • Repeat ${state.repeat}`;
   }
-  function buildShuffleOrder(){
-    const n = state.tracks.length;
-    const a = Array.from({length:n}, (_,i)=>i);
-    for (let i=n-1;i>0;i--){
+
+  // A shuffle cycle contains each track at most once. The currently playing
+  // song is excluded when starting the next cycle.
+  function buildShuffleOrder(excludeIndex=state.playingIndex){
+    const order = Array.from({length:state.tracks.length}, (_,i)=>i)
+      .filter(i => i !== excludeIndex);
+    for (let i=order.length-1;i>0;i--){
       const j = Math.floor(Math.random()*(i+1));
-      [a[i], a[j]] = [a[j], a[i]];
+      [order[i],order[j]] = [order[j],order[i]];
     }
-    state.shuffleOrder = a;
+    state.shuffleOrder = order;
     state.shufflePos = 0;
+    state.shuffleReady = true;
   }
+
+  function takeShuffleIndex(){
+    if (!state.shuffleReady) buildShuffleOrder();
+    if (state.shufflePos >= state.shuffleOrder.length){
+      if (state.repeat !== "all") return -1;
+      buildShuffleOrder();
+      // One-track libraries can repeat their sole track with Repeat All.
+      if (!state.shuffleOrder.length) return state.playingIndex;
+    }
+    return state.shuffleOrder[state.shufflePos++] ?? -1;
+  }
+
+  function markShufflePlayed(index){
+    if (!state.shuffle || !state.shuffleReady) return;
+    // Selecting a song manually removes it from the unplayed portion.
+    const remainingIndex = state.shuffleOrder.indexOf(index, state.shufflePos);
+    if (remainingIndex >= 0) state.shuffleOrder.splice(remainingIndex,1);
+  }
+
   function nextIndex(ignoreRepeatOne=false){
     const n = state.tracks.length;
     if (!n) return -1;
+    // Repeat One applies only when the current track finishes normally.
     if (!ignoreRepeatOne && state.repeat === "one" && state.playingIndex >= 0) return state.playingIndex;
-
-    if (state.shuffle){
-      if (!state.shuffleOrder.length || state.shuffleOrder.length !== n) buildShuffleOrder();
-      if (state.playingIndex >= 0){
-        const pos = state.shuffleOrder.indexOf(state.playingIndex);
-        // Do not rewind the shuffle cursor when skipping an unplayable track.
-        if (pos >= 0 && state.shufflePos <= pos) state.shufflePos = pos+1;
-      }
-      if (state.shufflePos >= n){
-        if (state.repeat === "all"){
-          buildShuffleOrder();
-        } else return -1;
-      }
-      return state.shuffleOrder[state.shufflePos++] ?? -1;
-    }
+    // Explicit queue has priority over Shuffle and sequential playback.
+    const queued = takeQueuedTrack();
+    if (queued >= 0) return queued;
+    if (state.shuffle) return takeShuffleIndex();
     if (state.playingIndex < 0) return 0;
-    const ni = state.playingIndex + 1;
-    if (ni < n) return ni;
-    return (state.repeat === "all") ? 0 : -1;
+    const next = state.playingIndex + 1;
+    return next < n ? next : state.repeat === "all" ? 0 : -1;
   }
+
   function prevIndex(){
+    while (state.playHistory.length){
+      const index = trackIndexByPath(state.playHistory.pop());
+      if (index >= 0) return index;
+    }
     const n = state.tracks.length;
     if (!n) return -1;
-    if (state.shuffle){
-      if (!state.shuffleOrder.length || state.shuffleOrder.length !== n) buildShuffleOrder();
-      const pos = state.shuffleOrder.indexOf(state.playingIndex);
-      return (pos > 0) ? state.shuffleOrder[pos-1] : state.playingIndex;
-    }
-    if (state.playingIndex <= 0) return (state.repeat === "all") ? n-1 : 0;
-    return state.playingIndex - 1;
+    if (state.playingIndex <= 0) return state.repeat === "all" ? n-1 : 0;
+    return state.playingIndex-1;
   }
 
   function clearArt(){
@@ -1629,6 +1642,7 @@
     state.handleMap.clear();
     state.shuffleOrder = [];
     state.shufflePos = 0;
+    state.shuffleReady = false;
     state.selectedIndex = -1;
     state.currentLibId = "";
     resetCollections();
@@ -1672,9 +1686,10 @@
     }, 500);
   }
 
-  async function playIndex(i, {user}={user:false}){
+  async function playIndex(i, {user=false, fromHistory=false}={}){
     if (i < 0 || i >= state.tracks.length) return;
     const t = state.tracks[i];
+    const oldPath = state.tracks[state.playingIndex]?.relPath || "";
     const libId = state.currentLibId;
     const requestId = ++state.playRequestId;
     clearPlaybackErrorTimer();
@@ -1699,11 +1714,17 @@
       await audio.play();
       if (requestId !== state.playRequestId) return;
       state.failedTrackKeys.delete(trackKey(libId, t.relPath));
+      if (!fromHistory && oldPath && oldPath !== t.relPath){
+        state.playHistory.push(oldPath);
+        if (state.playHistory.length > 100) state.playHistory.shift();
+      }
+      markShufflePlayed(i);
       btnPlay.textContent = "⏸";
       log("info", `Play: ${t.relPath}`);
       revealIndex(i);
     } catch(err){
       if (requestId !== state.playRequestId) return;
+      state.playingIndex = i;
       btnPlay.textContent = "▶️";
       log("error", `Không thể phát: ${t.relPath} — ${err?.message || String(err)}`);
       schedulePlaybackRecovery(i, requestId);
@@ -2274,6 +2295,7 @@
   btnShuffle.addEventListener("click", async () => {
     state.shuffle = !state.shuffle;
     if (state.shuffle) buildShuffleOrder();
+    else state.shuffleReady = false;
     await setSetting("shuffle", state.shuffle);
     updateModeBadges();
   });
@@ -2301,8 +2323,8 @@
   btnHelp.addEventListener("click", () => dlgHelp.showModal());
   btnCloseHelp.addEventListener("click", () => dlgHelp.close());
 
-  btnPrev.addEventListener("click", () => playIndex(prevIndex(), {user:true}));
-  btnNext.addEventListener("click", () => playIndex(nextIndex(), {user:true}));
+  btnPrev.addEventListener("click", () => playIndex(prevIndex(), {user:true, fromHistory:true}));
+  btnNext.addEventListener("click", () => playIndex(nextIndex(true), {user:true}));
   btnPlay.addEventListener("click", () => togglePlay());
   btnMute.addEventListener("click", () => {
     audio.muted = !audio.muted;
@@ -2430,8 +2452,8 @@
     if (inInput || tag === "select" || tag === "button") return;
 
     if (key === " "){ e.preventDefault(); togglePlay(); return; }
-    if (key.toLowerCase() === "n"){ e.preventDefault(); playIndex(nextIndex(), {user:true}); return; }
-    if (key.toLowerCase() === "p"){ e.preventDefault(); playIndex(prevIndex(), {user:true}); return; }
+    if (key.toLowerCase() === "n"){ e.preventDefault(); playIndex(nextIndex(true), {user:true}); return; }
+    if (key.toLowerCase() === "p"){ e.preventDefault(); playIndex(prevIndex(), {user:true, fromHistory:true}); return; }
     if (key.toLowerCase() === "s"){ e.preventDefault(); btnShuffle.click(); return; }
     if (key.toLowerCase() === "r"){ e.preventDefault(); btnRepeat.click(); return; }
     if (key.toLowerCase() === "m"){ e.preventDefault(); btnMute.click(); return; }
