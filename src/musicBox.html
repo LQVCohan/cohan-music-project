@@ -1125,7 +1125,7 @@
       const collator = new Intl.Collator("vi", {sensitivity:"base", numeric:true});
       arr.sort((a,b) => {
         if (state.sortMode === "duration") return ((b.status?.durationSec||0) - (a.status?.durationSec||0)) || collator.compare(a.relPath,b.relPath);
-        const field = state.sortMode === "artist" ? (t => t.status?.artist || "") : (t => t.status?.title || t.name);
+        const field = state.sortMode === "artist" ? (t => t.status?.artist || "") : (t => t.status?.title || cleanMusicFilename(t.name));
         return collator.compare(field(a), field(b)) || collator.compare(a.relPath,b.relPath);
       });
     }
@@ -1565,9 +1565,9 @@
 
   async function getBlobUrlForTrack(t){
     const h = state.handleMap.get(t.relPath);
-    if (!h) throw new Error("Không có file handle (persistent). Hãy Connect lại.");
+    if (!h) throw new Error("Không tìm thấy tệp nhạc. Hãy chọn lại thư mục.");
     const ok = await verifyPermission(h, false, false);
-    if (!ok) throw new Error("Chưa có quyền đọc file handle. Hãy Connect lại.");
+    if (!ok) throw new Error("Trình duyệt chưa được phép đọc bài nhạc. Hãy chọn lại thư mục.");
     const f = await h.getFile();
     const {blob} = blobWithGuessedMime(f);
     return URL.createObjectURL(blob);
@@ -1913,7 +1913,7 @@
       const o = document.createElement("option");
       o.value = lib.id;
       const kind = lib.kind === "persistent" ? "🔗" : "📁";
-      const miss = lib.missing ? " (missing)" : "";
+      const miss = lib.missing ? " (không tìm thấy thư mục)" : "";
       o.textContent = `${kind} ${lib.name} (${lib.trackCount||0})${miss}`;
       libSelect.appendChild(o);
     }
@@ -1941,7 +1941,7 @@
       return;
     }
 
-    listMeta.textContent = `Persistent: ${lib.name} • ${lib.trackCount||0} tracks • snapshot ${lib.snapshotHash?.slice(0,6) || "—"}`;
+    listMeta.textContent = `Đang mở thư viện: ${lib.name}...`;
     scanBadge.textContent = "Sẵn sàng";
     updateModeBadges();
 
@@ -1951,7 +1951,7 @@
       await loadPersistentLibrary(lib, {auto:true, epoch});
     } else {
       scanBadge.textContent = "Tự reconnect thất bại";
-      alert("Không thể tự reconnect tới folder đã lưu. Vui lòng bấm Connect Folder (Persistent) để cấp lại quyền.");
+      alert("Không thể mở lại thư mục nhạc. Vui lòng nhấn Chọn thư mục nhạc để cấp quyền truy cập.");
       log("error", "Auto reconnect thất bại: thiếu quyền đọc folder persistent.");
       renderList();
     }
@@ -1961,13 +1961,13 @@
   async function connectPersistentFolder(){
     if (!hasFSA){
       log("error", "Trình duyệt/ môi trường không hỗ trợ showDirectoryPicker().", {});
-      alert("Không có File System Access API (showDirectoryPicker). Không thể dùng app ở chế độ persistent.");
+      alert("Trình duyệt chưa hỗ trợ mở thư mục nhạc. Vui lòng dùng Chrome hoặc Edge bản mới nhất.");
       return;
     }
 
     // API requires secure context (HTTPS). :contentReference[oaicite:14]{index=14}
     if (!window.isSecureContext){
-      alert("Để dùng Persistent Connect, hãy mở trang trong secure context (HTTPS). Nếu bạn đang mở file://, hãy chạy bằng web server rồi mở qua HTTPS/localhost tuỳ môi trường.");
+      alert("Hãy mở ứng dụng bằng localhost hoặc trang HTTPS để chọn thư mục nhạc.");
       log("warn", "Không phải secure context → showDirectoryPicker có thể bị chặn.");
     }
 
@@ -2092,7 +2092,7 @@
       renderLibSelect();
       scanBadge.textContent = "Folder missing";
       log("error", "Không đọc được folder (có thể folder đã bị xóa/di chuyển).", {err:String(e)});
-      alert("Folder đã biến mất hoặc không truy cập được. Hãy Connect lại folder.");
+      alert("Không tìm thấy thư mục nhạc. Hãy nhấn Chọn thư mục nhạc và thử lại.");
       return;
     }
 
@@ -2150,7 +2150,7 @@
     if (epoch !== state.activeLibraryEpoch) return;
     renderSubPlaylist();
     renderQueue();
-    listMeta.textContent = `Persistent: ${lib.name} • ${state.tracks.length} tracks • snapshot ${lib.snapshotHash?.slice(0,6) || "—"}`;
+    listMeta.textContent = `Đã tải ${state.tracks.length} bài hát`;
     saveLastPersistentFolderInfo({label: lib.name || "", libId: lib.id || ""});
     scanBadge.textContent = "Sẵn sàng";
   }
@@ -2186,7 +2186,7 @@
 
   btnNewPlaylist.addEventListener("click", () => {
     if (!state.currentLibId) return;
-    const name = prompt("Tên playlist mới (tối đa 60 ký tự):");
+    const name = prompt("Đặt tên danh sách nhạc mới:");
     if (name === null) return;
     const clean = name.trim().slice(0,60);
     if (!clean) return;
@@ -2204,7 +2204,7 @@
   btnRenamePlaylist.addEventListener("click", () => {
     const pl = selectedPlaylist();
     if (!pl) return;
-    const name = prompt("Đổi tên playlist:", pl.name);
+    const name = prompt("Tên mới của danh sách:", pl.name);
     if (name === null) return;
     const clean = name.trim().slice(0,60);
     if (!clean || state.playlists.some(p => p.id !== pl.id && p.name.toLowerCase() === clean.toLowerCase())) return;
@@ -2216,7 +2216,7 @@
   btnDeletePlaylist.addEventListener("click", () => {
     const pl = selectedPlaylist();
     if (!pl || state.playlists.length < 2) return;
-    if (!confirm("Xóa playlist '" + pl.name + "'? File nhạc gốc không bị xóa.")) return;
+    if (!confirm("Xóa danh sách '" + pl.name + "'? Bài nhạc trên máy vẫn được giữ nguyên.")) return;
     state.playlists = state.playlists.filter(p => p.id !== pl.id);
     state.activePlaylistId = state.playlists[0].id;
     renderSubPlaylist();
@@ -2228,11 +2228,11 @@
     const pl=selectedPlaylist();
     if (!pl || pl.items.length<2) return;
     const suggested=Math.max(1,Math.min(20,Math.floor(pl.items.length/2)));
-    const answer=prompt("Chia '" + pl.name + "' thành các playlist, mỗi phần bao nhiêu bài? (giữ playlist gốc)",String(suggested));
+    const answer=prompt("Mỗi danh sách nhỏ có bao nhiêu bài?\nDanh sách gốc vẫn được giữ nguyên.",String(suggested));
     if (answer===null) return;
     try {
       const parts=splitPlaylist(pl,Number(answer.trim()));
-      showToast("Đã tạo " + parts.length + " playlist mới. Playlist gốc không thay đổi.");
+      showToast("Đã tạo " + parts.length + " danh sách mới. Danh sách gốc vẫn còn.");
     } catch(err) { showToast(err.message || String(err),true); }
   });
 
@@ -2297,7 +2297,11 @@
     updateModeBadges();
   });
 
-  btnLog.addEventListener("click", async () => { await loadLogs(); dlgLog.showModal(); });
+  btnLog.addEventListener("click", async () => {
+    if (dlgHelp.open) dlgHelp.close();
+    await loadLogs();
+    dlgLog.showModal();
+  });
   btnCloseLog.addEventListener("click", () => dlgLog.close());
   btnCopyLog.addEventListener("click", async () => {
     try{ await navigator.clipboard.writeText(logBox.textContent || ""); log("info","Đã copy log."); }
@@ -2363,12 +2367,9 @@
     schedulePlaybackRecovery(i, requestId);
   });
 
-  btnRevealCurrent.addEventListener("click", () => {
-    if (state.playingIndex >= 0) revealIndex(state.playingIndex);
-  });
-
   btnClearCache.addEventListener("click", async () => {
     if (!state.currentLibId) return;
+    if (dlgHelp.open) dlgHelp.close();
     await clearStatusesForLib(state.currentLibId);
     for (const t of state.tracks) t.status = null;
     // clear cover urls
@@ -2382,6 +2383,8 @@
   btnClearLib.addEventListener("click", async () => {
     const id = state.currentLibId;
     if (!id) return;
+    if (!confirm("Bỏ thư viện này khỏi ứng dụng? Các bài nhạc trên máy tính vẫn được giữ nguyên.")) return;
+    if (dlgHelp.open) dlgHelp.close();
     beginLibraryChange();
     await Promise.all([playlistSaveChain, queueSaveChain]);
     await idbDel("libs", id);
@@ -2507,13 +2510,12 @@
     if (!hasFSA){
       compatBanner.style.display = "block";
       compatBanner.innerHTML = `
-        <b>Lỗi:</b> Trình duyệt/môi trường hiện tại không có <code>showDirectoryPicker()</code> nên app không thể truy cập thư viện nhạc persistent.
+        <b>Không thể mở thư mục nhạc.</b> Hãy sử dụng Chrome hoặc Edge bản mới nhất.
       `;
     } else if (!window.isSecureContext){
       compatBanner.style.display = "block";
       compatBanner.innerHTML = `
-        <b>Lưu ý:</b> Bạn đang không ở secure context (HTTPS). File System Access API yêu cầu secure context. :contentReference[oaicite:16]{index=16}
-        Hãy mở trang qua HTTPS/localhost để dùng persistent folder.
+        <b>Không thể chọn thư mục nhạc.</b> Hãy mở ứng dụng qua localhost hoặc HTTPS thay vì mở trực tiếp file HTML.
       `;
     }
 
