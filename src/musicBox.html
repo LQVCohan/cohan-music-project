@@ -254,6 +254,7 @@
             .search { min-width: 100%; }
         }
     </style>
+    <link rel="stylesheet" href="./stage3.css">
     </head>
 
     <body>
@@ -263,7 +264,7 @@
                     <div class="brand-icon">🔥</div>
                     <div class="brand-text">
                         <div class="brand-name">QUÁN NƯỚNG 46K</div>
-                        <div class="brand-sub">Premium Station</div>
+                        <div class="brand-sub">MUSIC CONTROL CENTER · V3</div>
                     </div>
                 </div>
 
@@ -285,7 +286,8 @@
 
                 <div class="search" title="Ctrl/⌘+F để focus">
                     🔎 <input id="q"
-                        placeholder="Tìm title / artist / album / path..."
+                        aria-label="Tìm bài hát trong thư viện"
+                        placeholder="Tìm bài hát, ca sĩ, album..."
                         autocomplete="off" />
                     <span class="muted tiny" id="qCount"></span>
                 </div>
@@ -385,7 +387,7 @@
                     </div>
                     <div class="playlistPanel">
                         <div class="utilityHead">
-                            <strong>🎼 Playlist</strong>
+                            <strong>🎼 Playlist của bạn</strong>
                             <span class="utilityActions">
                                 <button class="miniBtn" id="btnNewPlaylist" title="Tạo playlist mới">+ Tạo</button>
                                 <button class="miniBtn" id="btnRenamePlaylist" title="Đổi tên playlist">✎ Đổi tên</button>
@@ -396,6 +398,13 @@
                             <select class="compactSelect" id="playlistSelect" aria-label="Chọn playlist"></select>
                             <button class="miniBtn" id="btnAddSelectedPlaylist" title="Thêm bài đang chọn vào playlist">+ Thêm bài đang chọn</button>
                         </div>
+                        <div class="playlistTools" aria-label="Chia playlist, xuất và nhập">
+                            <button class="miniBtn" id="btnSplitPlaylist" title="Chia playlist hiện tại thành nhiều playlist nhỏ">✂️ Chia playlist</button>
+                            <button class="miniBtn" id="btnExportPlaylist" title="Xuất playlist ra file JSON để chia sẻ hoặc sao lưu">📤 Xuất / chia sẻ</button>
+                            <button class="miniBtn" id="btnImportPlaylist" title="Nhập playlist JSON đã được chia sẻ">📥 Nhập playlist</button>
+                            <input type="file" id="playlistImportFile" accept=".json,application/json" hidden aria-label="Chọn file JSON playlist">
+                        </div>
+                        <div class="infoNote">Chia playlist sẽ tạo các phần mới và giữ nguyên bản gốc. File chia sẻ chỉ chứa danh sách bài, không chứa nhạc.</div>
                         <div class="playlistItems" id="playlistItems" aria-live="polite">Chưa có bài hát.</div>
                     </div>
                     <div class="queuePanel">
@@ -433,6 +442,7 @@
                 </div>
             </footer>
         </div>
+        <div class="app-toast" id="appToast" role="status" aria-live="polite" hidden></div>
 
         <dialog id="dlgLog">
             <div class="dlgHead">
@@ -521,6 +531,11 @@
   const btnRenamePlaylist = $("#btnRenamePlaylist");
   const btnDeletePlaylist = $("#btnDeletePlaylist");
   const btnAddSelectedPlaylist = $("#btnAddSelectedPlaylist");
+  const btnSplitPlaylist = $("#btnSplitPlaylist");
+  const btnExportPlaylist = $("#btnExportPlaylist");
+  const btnImportPlaylist = $("#btnImportPlaylist");
+  const playlistImportFile = $("#playlistImportFile");
+  const appToast = $("#appToast");
   const queueItems = $("#queueItems");
   const queueCount = $("#queueCount");
   const btnClearQueue = $("#btnClearQueue");
@@ -1369,6 +1384,9 @@
     btnRenamePlaylist.disabled = !enabled;
     btnDeletePlaylist.disabled = !enabled || state.playlists.length < 2;
     btnAddSelectedPlaylist.disabled = !enabled || state.selectedIndex < 0;
+    btnSplitPlaylist.disabled = !enabled || pl.items.length < 2;
+    btnExportPlaylist.disabled = !enabled || pl.items.length < 1;
+    btnImportPlaylist.disabled = !state.currentLibId;
 
     if (!pl){
       playlistItems.textContent = state.currentLibId ? "Chưa có playlist." : "Hãy kết nối thư mục nhạc.";
