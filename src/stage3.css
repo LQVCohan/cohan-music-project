@@ -1,0 +1,214 @@
+/* Stage 3 — Trạm Nhạc: refined desktop-first responsive UI */
+:root {
+  --bg:#0b0e16;
+  --panel:#131824;
+  --panel2:#202838;
+  --text:#f5f6fb;
+  --muted:#a6afc0;
+  --line:#2d3444;
+  --accent:#ff9852;
+  --bad:#ff6878;
+  --warn:#ffcb74;
+  --ok:#6cdeb1;
+  --shadow:0 16px 44px rgba(0,0,0,.28);
+  --glow:0 0 0 3px rgba(255,152,82,.12);
+  --radius:18px;
+  color-scheme: dark;
+}
+html, body {min-width:320px;}
+body {
+  background:
+    radial-gradient(ellipse 75% 60% at 100% -15%,rgba(255,137,67,.14),transparent 62%),
+    radial-gradient(ellipse 75% 70% at 0% 105%,rgba(90,92,210,.10),transparent 62%),
+    var(--bg);
+}
+button, select, input {font:inherit;}
+button:focus-visible, select:focus-visible, input:focus-visible, .list:focus-visible {
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+button:disabled {opacity:.5;cursor:not-allowed;}
+.app {min-height:0;}
+header {
+  gap:12px 18px;
+  padding:14px clamp(14px,2.4vw,34px);
+  background:rgba(15,19,29,.93);
+  border-bottom:1px solid var(--line);
+  box-shadow:0 4px 24px rgba(0,0,0,.16);
+}
+.brand {
+  border-right:1px solid var(--line);
+  padding-right:20px;
+}
+.brand-icon {
+  display:grid;
+  place-items:center;
+  width:44px;
+  height:44px;
+  border-radius:14px;
+  background:linear-gradient(145deg,#ffae65,#ef653c);
+  font-size:25px;
+  filter:none;
+  box-shadow:0 6px 18px rgba(255,139,65,.2);
+}
+.brand-name {font-size:17px;letter-spacing:.3px;color:#fff;}
+.brand-sub {font-size:10px;letter-spacing:1.2px;color:#ffb886;}
+header .left, header .right {gap:9px;}
+header select {max-width:250px!important;}
+header .pill, .search {
+  background:rgba(255,255,255,.035);
+  border:1px solid var(--line);
+  box-shadow:none;
+}
+header .search {
+  min-width:190px;
+  max-width:430px;
+  padding:10px 15px;
+  border-radius:12px;
+}
+.search:focus-within {border-color:var(--accent);box-shadow:var(--glow);}
+.search input::placeholder {color:#939caf;}
+.btn {
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  box-shadow:none;
+  transition:background .18s,border-color .18s,transform .18s;
+}
+.btn:hover {border-color:rgba(255,152,82,.55);background:rgba(255,152,82,.08);box-shadow:none;}
+.btn.primary {background:linear-gradient(135deg,#ffad66,#f57442);color:#16151c;box-shadow:0 6px 20px rgba(255,126,65,.14);font-weight:750;}
+.btn.primary:hover {background:linear-gradient(135deg,#ffc184,#ff8854);box-shadow:0 8px 24px rgba(255,126,65,.18);}
+.seg {background:rgba(255,255,255,.04);border:1px solid var(--line);}
+.seg button {padding:10px 13px;}
+.seg button[aria-pressed="true"] {background:rgba(255,152,82,.16);color:#ffb482;}
+main {
+  gap:clamp(12px,1.7vw,24px);
+  padding:clamp(12px,2vw,25px);
+  grid-template-columns:minmax(0,1.45fr) minmax(340px,.85fr);
+}
+.card {
+  background:linear-gradient(155deg,rgba(27,33,47,.97),rgba(18,23,36,.96));
+  border:1px solid rgba(255,255,255,.075);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+.card .titlebar {
+  padding:17px 19px;
+  background:rgba(255,255,255,.02);
+  border-bottom:1px solid var(--line);
+}
+.card .titlebar strong {letter-spacing:-.2px;}
+.titlebar .meta {color:var(--muted);}
+.list {padding:9px;min-height:0;}
+.list .row {
+  border:1px solid transparent;
+  border-radius:12px;
+  margin-bottom:4px;
+  padding:11px 13px;
+  transition:background .15s,border-color .15s;
+}
+.list .row:hover {transform:none;background:rgba(255,255,255,.045);border-color:var(--line);}
+.list .row.sel {border-left:3px solid var(--accent);background:rgba(255,152,82,.085);}
+.list .row.playing {border-left:3px solid var(--ok);background:rgba(108,222,177,.085);}
+.row .name {font-weight:650;color:var(--text);}
+.row .path {font-size:11px;}
+.miniBtn {
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--line);
+  border-radius:9px;
+  padding:6px 9px;
+  min-width:31px;
+  min-height:30px;
+  color:var(--text);
+}
+.miniBtn:hover, .miniBtn:focus-visible {background:rgba(255,152,82,.12);border-color:var(--accent);}
+.miniBtn:disabled {opacity:.35;}
+.compactSelect {
+  background:#202838;
+  border:1px solid var(--line);
+  border-radius:10px;
+  min-height:35px;
+}
+.now {background:linear-gradient(180deg,rgba(33,36,53,.92),rgba(15,21,33,.99));}
+.now .body {padding:22px;gap:15px;}
+.now .art {
+  max-width:230px;
+  border-radius:20px;
+  background:radial-gradient(circle at 50% 30%,rgba(255,176,101,.2),rgba(29,34,50,.9) 75%);
+  border:1px solid rgba(255,183,125,.22);
+  box-shadow:0 20px 45px rgba(0,0,0,.25);
+}
+.now .npTitle {font-size:clamp(19px,2vw,25px);text-align:center;line-height:1.25;letter-spacing:-.6px;}
+.now .npSub {font-size:12px;text-align:center;letter-spacing:.55px;color:#ffaf81;}
+.now .kv {background:rgba(0,0,0,.17);border-color:var(--line);border-radius:12px;padding:13px;}
+.now .kv code {color:#dfdfeb;font-size:11px;}
+.now .playlistPanel,.now .queuePanel {padding:18px 20px;border-top:1px solid var(--line);}
+.utilityHead strong {font-size:15px;}
+.utilityActions {gap:6px;}
+.playlistItem {background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.045);border-radius:10px;}
+.playlistItems,.queueItems {max-height:215px;}
+.playlistTools {display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.playlistTools button {white-space:nowrap;}
+.infoNote {font-size:11px;color:var(--muted);line-height:1.5;margin-top:8px;}
+footer {
+  background:rgba(15,19,29,.97);
+  border-top:1px solid var(--line);
+  padding:13px clamp(14px,2.4vw,32px);
+  grid-template-columns:minmax(182px,.8fr) minmax(220px,2fr) minmax(180px,.8fr);
+  box-shadow:0 -8px 35px rgba(0,0,0,.16);
+}
+.controls {gap:9px;flex-wrap:nowrap;}
+.controls .btn {border-radius:13px;width:42px;height:42px;}
+.controls .btn.primary {height:51px;width:55px;border-radius:15px;font-size:21px;}
+input[type="range"] {accent-color:var(--accent);}
+.badge {color:#ffba84;background:rgba(255,152,82,.08);border:1px solid rgba(255,152,82,.17);}
+.banner {border-radius:12px;}
+.app-toast {
+  position:fixed;right:20px;bottom:107px;z-index:80;
+  padding:12px 17px;max-width:min(400px,calc(100vw - 32px));
+  color:#f9f9fd;background:#252d3b;border:1px solid #465062;
+  box-shadow:0 18px 42px rgba(0,0,0,.4);border-radius:12px;
+  font-size:13px;line-height:1.5;
+}
+.app-toast[hidden] {display:none;}
+dialog {background:#171e2d;border:1px solid var(--line);border-radius:16px;}
+@media(max-width:1150px){
+  header .search {order:3;max-width:none;flex-basis:100%;}
+  header .spacer {display:none;}
+  main {grid-template-columns:minmax(0,1.15fr) minmax(305px,.85fr);}
+  footer {grid-template-columns:165px minmax(150px,1fr) 160px;gap:12px;}
+  .vol input {max-width:95px!important;}
+}
+@media(max-width:850px){
+  body {overflow:auto;height:auto;min-height:100dvh;}
+  .app {height:auto;min-height:100dvh;display:flex;flex-direction:column;}
+  header {padding:12px;position:relative;}
+  .brand {border-right:0;padding-right:0;}
+  main {grid-template-columns:minmax(0,1fr);padding:12px;flex:1;}
+  .card .list {height:auto;max-height:48vh;min-height:240px;}
+  .now .body {padding:18px;}
+  .now .art {max-width:190px;}
+  footer {position:sticky;bottom:0;grid-template-columns:1fr;gap:10px;padding:12px;background:rgba(15,19,29,.98);}
+  .controls,.vol {justify-content:center;}
+  .progress {grid-row:1;}
+  .app-toast {bottom:155px;}
+}
+@media(max-width:530px){
+  header {gap:9px;}
+  header .left {width:100%;}
+  header .right {width:100%;justify-content:space-between;}
+  header .pill {max-width:100%;}
+  header .search {min-width:100%;max-width:100%;}
+  .list .row {grid-template-columns:minmax(0,1fr) 48px 21px;padding:9px;}
+  .list .row .trackActions {grid-column:1 / -1;justify-content:flex-end;}
+  .card .titlebar {padding:12px;gap:10px;}
+  .now .playlistPanel,.now .queuePanel {padding:14px 12px;}
+  .playlistItem {flex-wrap:wrap;}
+  .playlistItem .utilityActions {margin-left:auto;}
+  .kv {grid-template-columns:72px minmax(0,1fr);}
+  .controls {gap:10px;}
+  .brand-name {font-size:15px;}
+}
+@media(prefers-reduced-motion:reduce){
+  *, *::before, *::after {animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important;}
+}
