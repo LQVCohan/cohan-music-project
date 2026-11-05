@@ -1277,23 +1277,182 @@
     if (el) el.scrollIntoView({block:"center", behavior:"smooth"});
   }
 
-  function addTrackToQuickPlaylist(idx){
-    const t = state.tracks[idx];
-    if (!t) return;
-    if (!state.playlists.length) state.playlists.push({id:'quick', name:'Yêu thích nhanh', items:[]});
-    const pl = state.playlists[0];
-    if (!pl.items.includes(t.relPath)) pl.items.push(t.relPath);
+  // ====== Persistent playlists + play-next queue (per library)
+  let playlistSaveChain = Promise.resolve();
+  let queueSaveChain = Promise.resolve();
+
+  function trackIndexByPath(path){
+    return state.tracks.findIndex(t => t.relPath === path);
+  }
+
+  function resetCollections(){
+    state.playlists = [];
+    state.activePlaylistId = "favorites";
+    state.queue = [];
+    state.playHistory = [];
     renderSubPlaylist();
-    log("info", `Đã thêm vào playlist '${pl.name}': ${t.relPath}`);
+    renderQueue();
+  }
+
+  function persistPlaylists(){
+    const libId = state.currentLibId;
+    if (!libId) return Promise.resolve();
+    const snapshot = {
+      id: libId,
+      activeId: state.activePlaylistId,
+      entries: state.playlists.map(p => ({id:p.id, name:p.name, items:[...p.items]})),
+      updatedAt: Date.now()
+    };
+    playlistSaveChain = playlistSaveChain.catch(() => {}).then(() => idbPut("playlists", snapshot))
+      .catch(err => log("error", "Không lưu được playlist.", {err:String(err)}));
+    return playlistSaveChain;
+  }
+
+  function persistQueue(){
+    const libId = state.currentLibId;
+    if (!libId) return Promise.resolve();
+    const snapshot = [...state.queue];
+    queueSaveChain = queueSaveChain.catch(() => {}).then(() => setSetting("queue:" + libId, snapshot))
+      .catch(err => log("error", "Không lưu được hàng đợi.", {err:String(err)}));
+    return queueSaveChain;
+  }
+
+  async function loadLibraryCollections(libId, epoch){
+    await Promise.all([playlistSaveChain, queueSaveChain]);
+    if (epoch !== state.activeLibraryEpoch || libId !== state.currentLibId) return;
+    const [record, storedQueue] = await Promise.all([
+      idbGet("playlists", libId), getSetting("queue:" + libId, [])
+    ]);
+    if (epoch !== state.activeLibraryEpoch || libId !== state.currentLibId) return;
+
+    const source = Array.isArray(record?.entries) ? record.entries : [];
+    state.playlists = source.filter(p => p && typeof p.id === "string").map(p => ({
+      id:p.id,
+      name:String(p.name || "Playlist").slice(0,60),
+      // Deduplicate playlist membership, but keep missing tracks for reimports.
+      items:[...new Set((Array.isArray(p.items) ? p.items : []).filter(x => typeof x === "string"))]
+    }));
+    if (!state.playlists.length) state.playlists = [{id:"favorites", name:"Yêu thích", items:[]}];
+    state.activePlaylistId = state.playlists.some(p=>p.id===record?.activeId)
+      ? record.activeId : state.playlists[0].id;
+
+    const available = new Set(state.tracks.map(t => t.relPath));
+    state.queue = (Array.isArray(storedQueue) ? storedQueue : [])
+      .filter(path => typeof path === "string" && available.has(path))
+      .slice(0,1000);
+    renderSubPlaylist();
+    renderQueue();
+    if (!source.length) persistPlaylists();
+    if (Array.isArray(storedQueue) && state.queue.length !== storedQueue.length) persistQueue();
+  }
+
+  function selectedPlaylist(){
+    return state.playlists.find(p=>p.id===state.activePlaylistId) || state.playlists[0] || null;
   }
 
   function renderSubPlaylist(){
-    if (!state.playlists.length || !state.playlists[0].items.length){
-      playlistItems.textContent = "Chưa có bài hát trong playlist con.";
+    playlistSelect.innerHTML = "";
+    for (const pl of state.playlists){
+      const opt = document.createElement("option");
+      opt.value = pl.id;
+      opt.textContent = pl.name + " (" + pl.items.length + ")";
+      playlistSelect.appendChild(opt);
+    }
+    playlistSelect.value = state.activePlaylistId;
+    const pl = selectedPlaylist();
+    const enabled = Boolean(state.currentLibId && pl);
+    playlistSelect.disabled = !enabled;
+    btnRenamePlaylist.disabled = !enabled;
+    btnDeletePlaylist.disabled = !enabled || state.playlists.length < 2;
+    btnAddSelectedPlaylist.disabled = !enabled || state.selectedIndex < 0;
+
+    if (!pl){
+      playlistItems.textContent = state.currentLibId ? "Chưa có playlist." : "Hãy kết nối thư mục nhạc.";
       return;
     }
-    const rows = state.playlists[0].items.map((rel, i)=>`<div class="playlistItem">${i+1}. ${escapeHtml(rel)}</div>`).join("");
-    playlistItems.innerHTML = rows;
+    if (!pl.items.length){
+      playlistItems.textContent = "Playlist trống. Chọn bài và nhấn ☆ để thêm.";
+      return;
+    }
+    playlistItems.innerHTML = pl.items.map((path, i) => {
+      const index = trackIndexByPath(path);
+      const t = state.tracks[index];
+      const label = t ? displayTitle(t) : path + " (không tìm thấy)";
+      return `<div class="playlistItem">
+        <span class="entryName ${t ? "" : "missing"}" title="${escapeHtml(label)}">${i+1}. ${escapeHtml(label)}</span>
+        <span class="utilityActions">
+          <button class="miniBtn" data-pl-action="play" data-pos="${i}" title="Phát bài hát" ${t?"":"disabled"}>▶</button>
+          <button class="miniBtn" data-pl-action="queue" data-pos="${i}" title="Thêm vào hàng đợi" ${t?"":"disabled"}>＋</button>
+          <button class="miniBtn" data-pl-action="up" data-pos="${i}" title="Đưa lên" ${i?"":"disabled"}>↑</button>
+          <button class="miniBtn" data-pl-action="down" data-pos="${i}" title="Đưa xuống" ${i<pl.items.length-1?"":"disabled"}>↓</button>
+          <button class="miniBtn" data-pl-action="remove" data-pos="${i}" title="Bỏ khỏi playlist">×</button>
+        </span>
+      </div>`;
+    }).join("");
+  }
+
+  function addTrackToQuickPlaylist(idx){
+    const t = state.tracks[idx], pl = selectedPlaylist();
+    if (!t || !pl) return;
+    if (pl.items.includes(t.relPath)) return;
+    pl.items.push(t.relPath);
+    renderSubPlaylist();
+    persistPlaylists();
+    log("info", `Thêm vào '${pl.name}': ${t.relPath}`);
+  }
+
+  function renderQueue(){
+    queueCount.textContent = "(" + state.queue.length + ")";
+    btnClearQueue.disabled = !state.queue.length;
+    if (!state.queue.length){
+      queueItems.textContent = "Hàng đợi trống. Dùng nút ＋ hoặc ⏭ bên cạnh bài hát.";
+      return;
+    }
+    queueItems.innerHTML = state.queue.map((path, i) => {
+      const t = state.tracks[trackIndexByPath(path)];
+      const label = t ? displayTitle(t) : path;
+      return `<div class="playlistItem">
+        <span class="entryName" title="${escapeHtml(label)}">${i+1}. ${escapeHtml(label)}</span>
+        <span class="utilityActions">
+          <button class="miniBtn" data-queue-action="play" data-pos="${i}" title="Phát ngay" ${t?"":"disabled"}>▶</button>
+          <button class="miniBtn" data-queue-action="up" data-pos="${i}" title="Đưa lên" ${i?"":"disabled"}>↑</button>
+          <button class="miniBtn" data-queue-action="down" data-pos="${i}" title="Đưa xuống" ${i<state.queue.length-1?"":"disabled"}>↓</button>
+          <button class="miniBtn" data-queue-action="remove" data-pos="${i}" title="Xóa khỏi hàng đợi">×</button>
+        </span>
+      </div>`;
+    }).join("");
+  }
+
+  function enqueueTrack(idx, playNext=false){
+    const t = state.tracks[idx];
+    if (!t || !state.currentLibId) return;
+    if (playNext) state.queue.unshift(t.relPath);
+    else state.queue.push(t.relPath);
+    renderQueue();
+    persistQueue();
+    log("info", `${playNext ? "Phát kế tiếp" : "Thêm vào hàng đợi"}: ${t.relPath}`);
+  }
+
+  function takeQueuedTrack(){
+    let next = -1, changed = false;
+    while (state.queue.length){
+      changed = true;
+      const path = state.queue.shift();
+      next = trackIndexByPath(path);
+      if (next >= 0) break;
+    }
+    if (changed){
+      renderQueue();
+      persistQueue();
+    }
+    return next;
+  }
+
+  function moveItem(items, position, step){
+    const dest = position + step;
+    if (position < 0 || position >= items.length || dest < 0 || dest >= items.length) return false;
+    [items[position],items[dest]] = [items[dest],items[position]];
+    return true;
   }
 
   function totalDurationSec(){
