@@ -126,7 +126,7 @@
         /* PLAYLIST */
         .list { height: 100%; overflow: auto; font-size: 14px; padding: 10px; }
         .row {
-            display: grid; grid-template-columns: 1fr 120px 28px; gap: 12px; align-items: center;
+            display: grid; grid-template-columns: minmax(0,1fr) 65px 24px auto; gap: 10px; align-items: center;
             padding: 12px 16px; border-bottom: 1px solid transparent; cursor: pointer;
             border-radius: 12px; transition: all 0.2s; margin-bottom: 4px;
         }
@@ -204,8 +204,20 @@
         .vol { display: flex; justify-content: flex-end; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; }
         .badge { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: rgba(0,0,0,0.4); font-size: 12px; font-weight: 600; color: var(--accent); }
         .banner { width: 100%; padding: 12px 16px; border: 1px solid rgba(255, 165, 2, 0.3); background: rgba(255, 165, 2, 0.1); border-radius: 14px; color: #fff; font-size: 13px; }
-        .playlistPanel { border-top: 1px solid var(--line); padding: 14px 16px; max-height: 200px; overflow:auto; }
-        .playlistItem { padding:8px 10px; border-radius:10px; background:rgba(0,0,0,.25); margin-bottom:6px; font-size:12px; }
+        .playlistPanel, .queuePanel { border-top: 1px solid var(--line); padding: 12px 16px; }
+        .playlistItems, .queueItems { max-height: 170px; overflow-y: auto; margin-top: 10px; }
+        .playlistItem { display:flex; gap:8px; align-items:center; justify-content:space-between; padding:8px 10px; border-radius:10px; background:rgba(0,0,0,.25); margin-bottom:6px; font-size:12px; }
+        .playlistItem .entryName { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+        .playlistItem .entryName.missing { color:var(--warn); }
+        .utilityHead { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+        .utilityActions, .trackActions { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+        .miniBtn { cursor:pointer; border:1px solid rgba(255,107,0,.25); background:rgba(0,0,0,.25); border-radius:8px; padding:5px 8px; font-size:12px; }
+        .miniBtn:hover, .miniBtn:focus-visible { background:rgba(255,107,0,.18); border-color:var(--accent); outline:none; }
+        .miniBtn:disabled { opacity:.3; cursor:not-allowed; }
+        .compactSelect { background:var(--panel2); color:var(--text); border:1px solid var(--line); padding:7px; border-radius:9px; max-width:190px; }
+        .trackActions .miniBtn { padding:5px 7px; }
+        .now .body { overflow-y:auto; min-height:0; }
+        @media (max-width: 650px){ .row {grid-template-columns: minmax(0,1fr) 45px 22px; padding:8px;} .trackActions {grid-column:1/-1;} .titlebar { gap:8px;} }
 
         /* DIALOGS */
         dialog {
@@ -302,6 +314,13 @@
 
                         <div class="spacer"></div>
 
+                        <label class="tiny muted" for="sortTracks">Sắp xếp</label>
+                        <select class="compactSelect" id="sortTracks" aria-label="Sắp xếp danh sách bài hát">
+                            <option value="path">Tên tệp</option>
+                            <option value="title">Tên bài hát</option>
+                            <option value="artist">Ca sĩ</option>
+                            <option value="duration">Thời lượng ↓</option>
+                        </select>
                         <button class="btn primary" id="btnQuickRandom" title="Enter: phát ngẫu nhiên ngay">🎲 Phát ngẫu nhiên ngay</button>
                         <span class="badge" id="scanBadge">Tự động quét</span>
                     </div>
@@ -362,9 +381,27 @@
                             title="Xóa library khỏi app (không xóa file trên máy)">🗑️
                             Remove library</button>
                     </div>
-                <div class="playlistPanel">
-                        <div class="tiny muted" style="margin-bottom:8px">🎼 Playlist con</div>
-                        <div id="playlistItems" class="tiny muted">Chưa có bài hát trong playlist con.</div>
+                    <div class="playlistPanel">
+                        <div class="utilityHead">
+                            <strong>🎼 Playlist</strong>
+                            <span class="utilityActions">
+                                <button class="miniBtn" id="btnNewPlaylist" title="Tạo playlist mới">+ Tạo</button>
+                                <button class="miniBtn" id="btnRenamePlaylist" title="Đổi tên playlist">✎ Đổi tên</button>
+                                <button class="miniBtn" id="btnDeletePlaylist" title="Xóa playlist">🗑</button>
+                            </span>
+                        </div>
+                        <div class="utilityActions">
+                            <select class="compactSelect" id="playlistSelect" aria-label="Chọn playlist"></select>
+                            <button class="miniBtn" id="btnAddSelectedPlaylist" title="Thêm bài đang chọn vào playlist">+ Thêm bài đang chọn</button>
+                        </div>
+                        <div class="playlistItems" id="playlistItems" aria-live="polite">Chưa có bài hát.</div>
+                    </div>
+                    <div class="queuePanel">
+                        <div class="utilityHead">
+                            <strong>⏭ Phát tiếp theo <span id="queueCount" class="tiny muted">(0)</span></strong>
+                            <button class="miniBtn" id="btnClearQueue">Xóa hàng đợi</button>
+                        </div>
+                        <div class="queueItems" id="queueItems" aria-live="polite">Hàng đợi trống.</div>
                     </div>
                 </section>
             </main>
@@ -475,7 +512,16 @@
   const btnShuffle = $("#btnShuffle");
   const btnRepeat = $("#btnRepeat");
   const btnQuickRandom = $("#btnQuickRandom");
+  const sortTracks = $("#sortTracks");
+  const playlistSelect = $("#playlistSelect");
   const playlistItems = $("#playlistItems");
+  const btnNewPlaylist = $("#btnNewPlaylist");
+  const btnRenamePlaylist = $("#btnRenamePlaylist");
+  const btnDeletePlaylist = $("#btnDeletePlaylist");
+  const btnAddSelectedPlaylist = $("#btnAddSelectedPlaylist");
+  const queueItems = $("#queueItems");
+  const queueCount = $("#queueCount");
+  const btnClearQueue = $("#btnClearQueue");
   const btnLog = $("#btnLog");
   const btnHelp = $("#btnHelp");
 
@@ -548,6 +594,10 @@
     coverUrlByKey: new Map(), // k -> objectURL
 
     playlists: [],
+    activePlaylistId: "favorites",
+    queue: [],
+    sortMode: "path",
+    playHistory: [],
     activeLibraryEpoch: 0,
     playRequestId: 0,
     playbackErrorTimer: null,
@@ -652,7 +702,7 @@
   }
 
   // ====== IndexedDB
-  const DB = { name: "musicbox-db", version: 2, db: null };
+  const DB = { name: "musicbox-db", version: 3, db: null };
 
   function openDB(){
     if (DB.db) return Promise.resolve(DB.db);
@@ -664,6 +714,7 @@
         if (!db.objectStoreNames.contains("statuses")) db.createObjectStore("statuses", { keyPath: "k" });
         if (!db.objectStoreNames.contains("logs")) db.createObjectStore("logs", { keyPath: "id", autoIncrement: true });
         if (!db.objectStoreNames.contains("settings")) db.createObjectStore("settings", { keyPath: "k" });
+        if (!db.objectStoreNames.contains("playlists")) db.createObjectStore("playlists", { keyPath: "id" });
       };
       req.onsuccess = () => { DB.db = req.result; resolve(DB.db); };
       req.onerror = () => reject(req.error);
@@ -1142,6 +1193,14 @@
       ].join(" ").toLowerCase();
       if (!s || hay.includes(s)) arr.push(Object.assign({_index:i}, t));
     }
+    if (state.sortMode !== "path"){
+      const collator = new Intl.Collator("vi", {sensitivity:"base", numeric:true});
+      arr.sort((a,b) => {
+        if (state.sortMode === "duration") return ((b.status?.durationSec||0) - (a.status?.durationSec||0)) || collator.compare(a.relPath,b.relPath);
+        const field = state.sortMode === "artist" ? (t => t.status?.artist || "") : (t => t.status?.title || t.name);
+        return collator.compare(field(a), field(b)) || collator.compare(a.relPath,b.relPath);
+      });
+    }
     return arr;
   }
 
@@ -1183,7 +1242,19 @@
         </div>
         <div class="dur">${dur}</div>
         ${statusIcon(t)}
+        <div class="trackActions">
+          <button type="button" class="miniBtn" data-track-action="favorite" title="Thêm vào playlist đang chọn" aria-label="Thêm ${escapeHtml(displayTitle(t))} vào playlist">☆</button>
+          <button type="button" class="miniBtn" data-track-action="next" title="Phát ngay sau bài hiện tại" aria-label="Phát ${escapeHtml(displayTitle(t))} tiếp theo">⏭</button>
+          <button type="button" class="miniBtn" data-track-action="queue" title="Thêm vào cuối hàng đợi" aria-label="Thêm ${escapeHtml(displayTitle(t))} vào hàng đợi">＋</button>
+        </div>
       `;
+      row.querySelectorAll("[data-track-action]").forEach(btn => btn.addEventListener("click", e => {
+        e.stopPropagation();
+        const action = btn.dataset.trackAction;
+        if (action === "favorite") addTrackToQuickPlaylist(idx);
+        else if (action === "next") enqueueTrack(idx, true);
+        else if (action === "queue") enqueueTrack(idx, false);
+      }));
       row.draggable = true;
       row.addEventListener("dragstart", (e) => {
         e.dataTransfer.setData("text/track-index", String(idx));
