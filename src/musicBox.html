@@ -254,6 +254,7 @@
             .search { min-width: 100%; }
         }
     </style>
+    <link rel="stylesheet" href="./stage3.css">
     </head>
 
     <body>
@@ -263,7 +264,7 @@
                     <div class="brand-icon">🔥</div>
                     <div class="brand-text">
                         <div class="brand-name">QUÁN NƯỚNG 46K</div>
-                        <div class="brand-sub">Premium Station</div>
+                        <div class="brand-sub">MUSIC CONTROL CENTER · V3</div>
                     </div>
                 </div>
 
@@ -285,7 +286,8 @@
 
                 <div class="search" title="Ctrl/⌘+F để focus">
                     🔎 <input id="q"
-                        placeholder="Tìm title / artist / album / path..."
+                        aria-label="Tìm bài hát trong thư viện"
+                        placeholder="Tìm bài hát, ca sĩ, album..."
                         autocomplete="off" />
                     <span class="muted tiny" id="qCount"></span>
                 </div>
@@ -385,7 +387,7 @@
                     </div>
                     <div class="playlistPanel">
                         <div class="utilityHead">
-                            <strong>🎼 Playlist</strong>
+                            <strong>🎼 Playlist của bạn</strong>
                             <span class="utilityActions">
                                 <button class="miniBtn" id="btnNewPlaylist" title="Tạo playlist mới">+ Tạo</button>
                                 <button class="miniBtn" id="btnRenamePlaylist" title="Đổi tên playlist">✎ Đổi tên</button>
@@ -396,6 +398,13 @@
                             <select class="compactSelect" id="playlistSelect" aria-label="Chọn playlist"></select>
                             <button class="miniBtn" id="btnAddSelectedPlaylist" title="Thêm bài đang chọn vào playlist">+ Thêm bài đang chọn</button>
                         </div>
+                        <div class="playlistTools" aria-label="Chia playlist, xuất và nhập">
+                            <button class="miniBtn" id="btnSplitPlaylist" title="Chia playlist hiện tại thành nhiều playlist nhỏ">✂️ Chia playlist</button>
+                            <button class="miniBtn" id="btnExportPlaylist" title="Xuất playlist ra file JSON để chia sẻ hoặc sao lưu">📤 Xuất / chia sẻ</button>
+                            <button class="miniBtn" id="btnImportPlaylist" title="Nhập playlist JSON đã được chia sẻ">📥 Nhập playlist</button>
+                            <input type="file" id="playlistImportFile" accept=".json,application/json" hidden aria-label="Chọn file JSON playlist">
+                        </div>
+                        <div class="infoNote">Chia playlist sẽ tạo các phần mới và giữ nguyên bản gốc. File chia sẻ chỉ chứa danh sách bài, không chứa nhạc.</div>
                         <div class="playlistItems" id="playlistItems" aria-live="polite">Chưa có bài hát.</div>
                     </div>
                     <div class="queuePanel">
@@ -433,6 +442,7 @@
                 </div>
             </footer>
         </div>
+        <div class="app-toast" id="appToast" role="status" aria-live="polite" hidden></div>
 
         <dialog id="dlgLog">
             <div class="dlgHead">
@@ -521,6 +531,11 @@
   const btnRenamePlaylist = $("#btnRenamePlaylist");
   const btnDeletePlaylist = $("#btnDeletePlaylist");
   const btnAddSelectedPlaylist = $("#btnAddSelectedPlaylist");
+  const btnSplitPlaylist = $("#btnSplitPlaylist");
+  const btnExportPlaylist = $("#btnExportPlaylist");
+  const btnImportPlaylist = $("#btnImportPlaylist");
+  const playlistImportFile = $("#playlistImportFile");
+  const appToast = $("#appToast");
   const queueItems = $("#queueItems");
   const queueCount = $("#queueCount");
   const btnClearQueue = $("#btnClearQueue");
@@ -1369,6 +1384,9 @@
     btnRenamePlaylist.disabled = !enabled;
     btnDeletePlaylist.disabled = !enabled || state.playlists.length < 2;
     btnAddSelectedPlaylist.disabled = !enabled || state.selectedIndex < 0;
+    btnSplitPlaylist.disabled = !enabled || pl.items.length < 2;
+    btnExportPlaylist.disabled = !enabled || pl.items.length < 1;
+    btnImportPlaylist.disabled = !state.currentLibId;
 
     if (!pl){
       playlistItems.textContent = state.currentLibId ? "Chưa có playlist." : "Hãy kết nối thư mục nhạc.";
@@ -1457,6 +1475,135 @@
     if (position < 0 || position >= items.length || dest < 0 || dest >= items.length) return false;
     [items[position],items[dest]] = [items[dest],items[position]];
     return true;
+  }
+
+  // ====== Stage 3 — non-destructive split and portable playlist files
+  let toastTimer = null;
+  function showToast(message, isError=false){
+    appToast.textContent = String(message || "");
+    appToast.style.borderColor = isError ? "var(--bad)" : "var(--line)";
+    appToast.hidden = false;
+    if (toastTimer !== null) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { appToast.hidden = true; toastTimer = null; }, 4200);
+  }
+
+  function playlistNameAvailable(name){
+    return !state.playlists.some(pl => pl.name.toLocaleLowerCase("vi") === name.toLocaleLowerCase("vi"));
+  }
+
+  function uniquePlaylistName(label){
+    const base = String(label || "Playlist").trim().slice(0,52) || "Playlist";
+    let name = base;
+    let suffix = 2;
+    while (!playlistNameAvailable(name)){
+      const tail = " (" + suffix++ + ")";
+      name = base.slice(0,60-tail.length) + tail;
+    }
+    return name;
+  }
+
+  function newPlaylistId(){
+    return "playlist-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2,10);
+  }
+
+  // Splitting clones tracks into newly named playlists; source playlist stays untouched.
+  function splitPlaylist(playlist, perPart){
+    if (!state.currentLibId || !playlist || playlist.items.length < 2) throw new Error("Playlist cần có ít nhất 2 bài.");
+    if (!Number.isSafeInteger(perPart) || perPart < 1 || perPart >= playlist.items.length){
+      throw new Error("Số bài mỗi phần phải từ 1 đến " + (playlist.items.length-1) + ".");
+    }
+    const count = Math.ceil(playlist.items.length/perPart);
+    if (count > 30) throw new Error("Tối đa 30 playlist mỗi lần chia. Hãy tăng số bài mỗi phần.");
+    const created = [];
+    const pieces = [];
+    for(let start=0;start<playlist.items.length;start+=perPart) pieces.push(playlist.items.slice(start,start+perPart));
+    for(let i=0;i<pieces.length;i++){
+      const suffix = " · Phần " + (i+1);
+      const name = uniquePlaylistName(playlist.name.slice(0,52-suffix.length) + suffix);
+      const item = {id:newPlaylistId(),name,items:pieces[i]};
+      state.playlists.push(item);
+      created.push(item);
+    }
+    state.activePlaylistId = created[0].id;
+    renderSubPlaylist();
+    persistPlaylists();
+    log("info", "Đã chia playlist '" + playlist.name + "' thành " + created.length + " phần; giữ nguyên bản gốc.");
+    return created;
+  }
+
+  function playlistExportData(playlist){
+    if (!playlist) throw new Error("Chưa chọn playlist.");
+    return {
+      format:"cohan-playlist",
+      version:1,
+      exportedAt:new Date().toISOString(),
+      playlist:{
+        name:playlist.name,
+        tracks:playlist.items.map(path=>{
+          const index=trackIndexByPath(path);
+          const track=index>=0 ? state.tracks[index] : null;
+          return {relPath:path,name:track?.name || path.split("/").pop() || "",title:track?.status?.title || ""};
+        })
+      }
+    };
+  }
+
+  function exportPlaylistFile(){
+    const playlist=selectedPlaylist();
+    if (!state.currentLibId || !playlist || !playlist.items.length) throw new Error("Chưa có bài trong playlist để chia sẻ.");
+    const doc=playlistExportData(playlist);
+    const safeFileName=playlist.name.replace(/[\\/:*?"<>|]/g,"_").slice(0,60) || "playlist";
+    const blob=new Blob([JSON.stringify(doc,null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement("a");
+    link.href=url;
+    link.download=safeFileName+".cohan-playlist.json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+    showToast("Đã xuất " + playlist.items.length + " bài. Bạn có thể gửi file JSON cho máy khác.");
+    return doc;
+  }
+
+  function importPlaylistData(documentData){
+    if (!state.currentLibId) throw new Error("Hãy kết nối thư viện nhạc trước khi nhập.");
+    if (!documentData || documentData.format !== "cohan-playlist" || documentData.version !== 1 ||
+        !documentData.playlist || !Array.isArray(documentData.playlist.tracks)){
+      throw new Error("File không đúng định dạng playlist COHAN (phiên bản 1).");
+    }
+    const incoming=documentData.playlist.tracks;
+    if (!incoming.length || incoming.length>10000) throw new Error("Playlist nhập phải có từ 1 đến 10.000 bài.");
+
+    const exact=new Map(state.tracks.map(t=>[t.relPath,t]));
+    const byFilename=new Map();
+    for (const t of state.tracks){
+      const key=t.name.toLocaleLowerCase("vi");
+      if (!byFilename.has(key)) byFilename.set(key,t);
+      else byFilename.set(key,null); // ambiguous name: never guess the wrong file
+    }
+    const items=[],known=new Set();
+    let missing=0;
+    for (const incomingTrack of incoming){
+      const rawPath=typeof incomingTrack === "string" ? incomingTrack : incomingTrack?.relPath;
+      if (typeof rawPath!=="string" || !rawPath.trim() || rawPath.length>1024){missing++;continue;}
+      let matched=exact.get(rawPath);
+      if (!matched){
+        const fileName=rawPath.replace(/\\/g,"/").split("/").pop().toLocaleLowerCase("vi");
+        matched=byFilename.get(fileName);
+      }
+      if (!matched){missing++;continue;}
+      if (!known.has(matched.relPath)){known.add(matched.relPath);items.push(matched.relPath);}
+    }
+    if (!items.length) throw new Error("Không tìm thấy bài hát tương ứng trong thư viện hiện tại.");
+    const requestedName=String(documentData.playlist.name || "Playlist được chia sẻ").slice(0,60);
+    const imported={id:newPlaylistId(),name:uniquePlaylistName(requestedName),items};
+    state.playlists.push(imported);
+    state.activePlaylistId=imported.id;
+    renderSubPlaylist();
+    persistPlaylists();
+    log("info","Đã nhập playlist '" + imported.name + "' (" + items.length + " bài, " + missing + " bài thiếu).");
+    return {playlist:imported,missing,matched:items.length};
   }
 
   function totalDurationSec(){
@@ -2250,6 +2397,49 @@
   });
 
   btnAddSelectedPlaylist.addEventListener("click", () => addTrackToQuickPlaylist(state.selectedIndex));
+  btnSplitPlaylist.addEventListener("click", () => {
+    const pl=selectedPlaylist();
+    if (!pl || pl.items.length<2) return;
+    const suggested=Math.max(1,Math.min(20,Math.floor(pl.items.length/2)));
+    const answer=prompt("Chia '" + pl.name + "' thành các playlist, mỗi phần bao nhiêu bài? (giữ playlist gốc)",String(suggested));
+    if (answer===null) return;
+    try {
+      const parts=splitPlaylist(pl,Number(answer.trim()));
+      showToast("Đã tạo " + parts.length + " playlist mới. Playlist gốc không thay đổi.");
+    } catch(err) { showToast(err.message || String(err),true); }
+  });
+
+  btnExportPlaylist.addEventListener("click", () => {
+    try { exportPlaylistFile(); }
+    catch(err) { showToast(err.message || String(err),true); }
+  });
+
+  btnImportPlaylist.addEventListener("click", () => {
+    if (state.currentLibId) playlistImportFile.click();
+  });
+
+  playlistImportFile.addEventListener("change", async () => {
+    const file=playlistImportFile.files?.[0];
+    if (!file) return;
+    const epoch=state.activeLibraryEpoch;
+    const libId=state.currentLibId;
+    try {
+      if (file.size>1024*1024) throw new Error("File JSON vượt 1 MB; không thể nhập.");
+      const data=JSON.parse(await file.text());
+      if (epoch !== state.activeLibraryEpoch || libId !== state.currentLibId){
+        throw new Error("Thư viện đã thay đổi trong lúc đọc file. Hãy nhập lại.");
+      }
+      const result=importPlaylistData(data);
+      showToast("Đã nhập " + result.matched + " bài vào '" + result.playlist.name + "'." +
+        (result.missing ? " Bỏ qua " + result.missing + " bài chưa tìm thấy." : ""));
+    } catch(err) {
+      showToast("Không thể nhập playlist: " + (err?.message || String(err)),true);
+    } finally {
+      playlistImportFile.value="";
+    }
+  });
+
+
 
   playlistItems.addEventListener("click", e => {
     const button = e.target.closest("[data-pl-action]");
