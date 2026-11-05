@@ -1501,14 +1501,16 @@
   }
 
   // ====== Scan pipeline (playability + duration + tags + cache)
-  async function hydrateStatusesOnly(libId){
+  async function hydrateStatusesOnly(libId, epoch=state.activeLibraryEpoch){
     for (const t of state.tracks){
+      if (epoch !== state.activeLibraryEpoch) return;
       const st = await getStatus(libId, t.relPath);
+      if (epoch !== state.activeLibraryEpoch) return;
       t.status = st || null;
     }
   }
 
-  async function scanChanged(lib, snapshot, {onlyChanged}){
+  async function scanChanged(lib, snapshot, {onlyChanged, epoch=state.activeLibraryEpoch}){
     if (state.scanning) return;
     state.scanning = true;
     state.scanAbort = {aborted:false};
@@ -1517,12 +1519,15 @@
     // decide todo
     let todo = [];
     for (const t of state.tracks){
+      if (epoch !== state.activeLibraryEpoch) break;
       const st = await getStatus(lib.id, t.relPath);
+      if (epoch !== state.activeLibraryEpoch) break;
       t.status = st || null;
       const changed = !st || st.size !== t.size || st.lastModified !== t.lastModified;
       if (!onlyChanged || changed) todo.push(t);
     }
 
+    if (epoch !== state.activeLibraryEpoch){ state.scanning = false; return; }
     if (!todo.length){
       scanBadge.textContent = "Không cần scan";
       log("info", "Không có file nào cần scan lại.");
@@ -1538,10 +1543,11 @@
     let idx = 0;
 
     const worker = async () => {
-      while (idx < todo.length && !abort.aborted){
+      while (idx < todo.length && !abort.aborted && epoch === state.activeLibraryEpoch){
         const t = todo[idx++];
         try{
           const {file, fixedMime} = await getFileForScan(t);
+          if (abort.aborted || epoch !== state.activeLibraryEpoch) break;
           const {blob, mime} = blobWithGuessedMime(file);
 
           // tags
@@ -1585,6 +1591,7 @@
             pr = await testPlayableFast(blob);
           }
 
+          if (abort.aborted || epoch !== state.activeLibraryEpoch) break;
           await putStatus(lib.id, t.relPath, {
             ok: pr.ok,
             detail: pr.detail,
@@ -1603,6 +1610,7 @@
           else if (fixedMime) log("info", `Đã tự sửa MIME để tăng khả năng phát: ${t.relPath}`);
 
         } catch(err){
+          if (abort.aborted || epoch !== state.activeLibraryEpoch) break;
           await putStatus(lib.id, t.relPath, {
             ok:false,
             detail:`Lỗi scan: ${err?.message||String(err)}`,
@@ -1614,14 +1622,15 @@
           log("error", `Lỗi scan: ${t.relPath}`, {err: String(err)});
         } finally {
           done++;
-          scanBadge.textContent = `Đang scan: ${done}/${todo.length}`;
+          if (epoch === state.activeLibraryEpoch) scanBadge.textContent = `Đang scan: ${done}/${todo.length}`;
         }
       }
     };
 
     await Promise.all(Array.from({length: CONC}, worker));
-
-    await hydrateStatusesOnly(lib.id);
+    if (epoch !== state.activeLibraryEpoch || abort.aborted){ state.scanning = false; return; }
+    await hydrateStatusesOnly(lib.id, epoch);
+    if (epoch !== state.activeLibraryEpoch) return;
     state.scanning = false;
     scanBadge.textContent = abort.aborted ? "Đã hủy" : "Hoàn tất scan";
     log("info", abort.aborted ? "Đã hủy scan." : "Hoàn tất scan.");
@@ -1767,10 +1776,17 @@
     const libId = buildLibId("persistent", rootName, snapshot.items);
 
     const now = Date.now();
-    const existing = await idbGet("libs", libId);
+    // Reuse library identity for the same directory, even when its songs change.
+    let existing = null;
+    for (const candidate of await idbGetAll("libs")){
+      if (candidate.kind !== "persistent" || !candidate.handle?.isSameEntry) continue;
+      try { if (await candidate.handle.isSameEntry(dir)){ existing = candidate; break; } }
+      catch {}
+    }
+    const stableId = existing?.id || libId;
 
     const lib = {
-      id: libId,
+      id: stableId,
       kind: "persistent",
       name: existing?.name || rootName,
       createdAt: existing?.createdAt || now,
@@ -1789,18 +1805,23 @@
       alert("Không lưu được folder handle để nhớ lần sau (trình duyệt hạn chế). Bạn vẫn dùng được trong phiên này.");
     }
 
-    saveLastPersistentFolderInfo({label: rootName, libId});
-
+    const epoch = beginLibraryChange();
+    state.currentLibId = stableId;
+    await setSetting("lastLibId", stableId);
+    if (epoch !== state.activeLibraryEpoch) return;
+    saveLastPersistentFolderInfo({label: rootName, libId: stableId});
     await loadLibs();
-    state.currentLibId = libId;
-    libSelect.value = libId;
-
-    await loadPersistentLibrary(lib, {prefetched: audioEntries, snapshot});
+    if (epoch !== state.activeLibraryEpoch) return;
+    state.currentLibId = stableId;
+    libSelect.value = stableId;
+    await loadPersistentLibrary(lib, {prefetched: audioEntries, snapshot, epoch});
   }
 
-  async function loadPersistentLibrary(lib, {auto=false, prefetched=null, snapshot=null}={}){
+  async function loadPersistentLibrary(lib, {auto=false, prefetched=null, snapshot=null, epoch=state.activeLibraryEpoch}={}){
+    if (epoch !== state.activeLibraryEpoch) return;
     // ensure permission
     const ok = lib.handle ? await verifyPermission(lib.handle, false, auto ? false : true) : false;
+    if (epoch !== state.activeLibraryEpoch) return;
     if (!ok){
       scanBadge.textContent = "Tự reconnect thất bại";
       renderList();
@@ -1838,6 +1859,7 @@
       return;
     }
 
+    if (epoch !== state.activeLibraryEpoch) return;
     // Build tracks
     state.tracks = [];
     state.handleMap.clear();
@@ -1867,11 +1889,13 @@
     if (snap && lib.snapshotHash && lib.snapshotHash === snap.hash){
       scanBadge.textContent = "Không đổi — dùng cache";
       log("info", `Snapshot không đổi → dùng cache (bỏ scan nặng).`);
-      await hydrateStatusesOnly(lib.id);
+      await hydrateStatusesOnly(lib.id, epoch);
+      if (epoch !== state.activeLibraryEpoch) return;
       renderList();
     } else {
       scanBadge.textContent = lib.snapshotHash ? "Có thay đổi — scan phần đổi" : "Lần đầu — scan";
-      await scanChanged(lib, snap, {onlyChanged: !!lib.snapshotHash});
+      await scanChanged(lib, snap, {onlyChanged: !!lib.snapshotHash, epoch});
+      if (epoch !== state.activeLibraryEpoch) return;
       // update lib snapshotHash after scan
       lib.snapshotHash = snap.hash;
       lib.trackCount = snap.count;
@@ -1882,6 +1906,7 @@
       renderLibSelect();
     }
 
+    if (epoch !== state.activeLibraryEpoch) return;
     listMeta.textContent = `Persistent: ${lib.name} • ${state.tracks.length} tracks • snapshot ${lib.snapshotHash?.slice(0,6) || "—"}`;
     saveLastPersistentFolderInfo({label: lib.name || "", libId: lib.id || ""});
     scanBadge.textContent = "Sẵn sàng";
