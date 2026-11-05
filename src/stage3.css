@@ -212,3 +212,149 @@ dialog {background:#171e2d;border:1px solid var(--line);border-radius:16px;}
 @media(prefers-reduced-motion:reduce){
   *, *::before, *::after {animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important;}
 }
+
+/* Bản giao diện đơn giản: ưu tiên các thao tác nghe nhạc hằng ngày */
+:root {
+  --bg:#0d111b;
+  --panel:#171e2b;
+  --panel2:#202839;
+  --text:#f4f7fb;
+  --muted:#aeb7c8;
+  --line:#303949;
+  --accent:#ffa468;
+}
+body {background:radial-gradient(ellipse at 90% 0,rgba(255,151,88,.08),transparent 55%),var(--bg);}
+header {gap:10px 15px;padding:12px clamp(14px,2vw,28px);}
+.brand {flex-shrink:0;}
+.brand-icon {width:40px;height:40px;border-radius:12px;font-size:23px;}
+.brand-name {font-size:15px;white-space:nowrap;}
+.brand-sub {font-size:10px;letter-spacing:1.4px;}
+header .left {gap:9px;}
+header .left .btn {padding:11px 15px;font-size:13px;white-space:nowrap;}
+header .pill {border-radius:12px;padding:9px 12px;}
+header .pill select {background:transparent;border:0;outline:none;min-width:80px;max-width:140px!important;}
+header .search {margin-left:auto;min-width:170px;max-width:310px;flex:1;padding:10px 13px;}
+header .right {flex-wrap:nowrap;gap:8px;}
+header .right .btn {padding:10px 13px;white-space:nowrap;}
+header .seg {border-radius:12px;}
+header .seg button {padding:10px 11px;font-size:12px;white-space:nowrap;}
+#scanBadge[hidden],#modeBadge[hidden] {display:none!important;}
+main {grid-template-columns:minmax(0,1.55fr) minmax(350px,.9fr);gap:16px;padding:16px;}
+.card {border-radius:16px;box-shadow:0 13px 26px rgba(0,0,0,.18);}
+.card .titlebar {gap:10px;padding:15px 16px;}
+.sectionTitle {font-size:16px;color:var(--text);font-weight:800;letter-spacing:-.3px;}
+.titlebar .meta {margin-top:5px;color:var(--muted);}
+#sortTracks {max-width:128px;}
+#btnQuickRandom {padding:10px 13px;white-space:nowrap;font-size:13px;}
+.list {padding:8px;overflow-y:auto;overflow-x:hidden;}
+.list .row {
+  display:grid;grid-template-columns:minmax(0,1fr) 55px auto;
+  min-height:56px;gap:10px;padding:9px 12px;margin-bottom:3px;
+  align-items:center;
+}
+.list .row .trackMain {min-width:0;overflow:hidden;}
+.list .row .name {font-size:13px;font-weight:650;line-height:1.4;text-overflow:ellipsis;white-space:nowrap;}
+.list .row .path {font-size:11px;line-height:1.3;margin-top:3px;color:var(--muted);}
+.list .row .dur {font-size:12px;color:var(--muted);text-align:right;}
+.list .row .trackActions {display:flex;flex-wrap:nowrap;gap:4px;align-items:center;}
+.list .row .trackActions .miniBtn {
+  padding:6px 7px;min-height:30px;min-width:0;font-size:11px;
+  background:rgba(255,255,255,.045);
+}
+.list .row.playing .name {color:#9ce9c8;}
+.now {overflow-y:auto;scrollbar-gutter:stable;}
+.now .titlebar {position:sticky;top:0;z-index:1;background:#1b2230;}
+.now .body {
+  padding:16px 18px;
+  display:grid;
+  grid-template-columns:116px minmax(0,1fr);
+  gap:16px;align-items:center;flex-shrink:0;
+  min-height:154px;
+}
+.now .art {
+  width:116px;height:116px;max-width:none;aspect-ratio:1;
+  margin:0;border-radius:16px;
+  box-shadow:0 8px 24px rgba(0,0,0,.18);
+}
+.artEmpty {display:grid;place-items:center;height:100%;font-size:47px;color:#ffa468;}
+.artEmpty span {line-height:1;}
+.now .currentInfo {min-width:0;text-align:left;}
+.now .npTitle {font-size:clamp(16px,1.8vw,21px);text-align:left;line-height:1.35;overflow-wrap:anywhere;}
+.now .npSub {margin-top:7px;text-align:left;font-size:12px;line-height:1.5;letter-spacing:0;text-transform:none;color:var(--muted);}
+.now .playlistPanel, .now .queuePanel {padding:16px 18px;}
+.now .playlistPanel {border-top:1px solid var(--line);}
+.playlistToolbar {gap:7px;align-items:center;flex-wrap:wrap;}
+.playlistToolbar #playlistSelect {flex:1;min-width:140px;max-width:100%;min-height:35px;}
+.playlistToolbar .miniBtn {padding:7px 10px;}
+.utilityHead {margin-bottom:10px;}
+.utilityHead strong {font-size:14px;}
+.utilityHead .utilityActions {gap:5px;}
+.utilityHead .miniBtn {padding:6px 9px;font-size:11px;}
+.playlistItems, .queueItems {
+  margin-top:12px;max-height:172px;
+  color:var(--muted);font-size:12px;
+}
+.playlistItem {padding:8px 9px;gap:6px;}
+.playlistItem .entryName {color:var(--text);font-size:12px;}
+.playlistItem .utilityActions {gap:3px;}
+.playlistItem .miniBtn {font-size:11px;min-width:25px;min-height:26px;padding:3px 6px;}
+footer {padding:11px clamp(14px,2vw,28px);}
+footer .progress {gap:10px;}
+footer .vol {gap:9px;}
+footer .vol input {max-width:125px!important;}
+footer .controls .btn {width:42px;height:42px;}
+footer .controls .btn.primary {width:52px;height:48px;}
+.helpBody {max-width:650px;max-height:65vh;overflow-y:auto;line-height:1.65;color:var(--text);}
+.helpBody p {margin:0 0 13px;}
+.helpSteps {display:grid;gap:10px;margin:10px 0 16px;}
+.helpSteps > div {background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:10px;padding:10px 13px;}
+.helpSteps b {color:#ffb681;margin-right:7px;}
+.helpDetails {margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;}
+.helpDetails summary {cursor:pointer;font-weight:650;}
+.helpDetails[open] summary {margin-bottom:12px;}
+.shortcutGrid {display:grid;grid-template-columns:120px 1fr;gap:8px 15px;font-size:12px;color:var(--muted);}
+.shortcutGrid span:nth-child(odd) {font-weight:650;color:var(--text);}
+.advancedActions {display:flex;flex-wrap:wrap;gap:8px;}
+.advancedActions .miniBtn {font-size:12px;padding:8px 10px;}
+dialog {width:min(680px,94vw);}
+@media(max-width:1300px){
+  header .search {order:3;max-width:none;flex:1 1 100%;margin-left:0;}
+  header .right {margin-left:auto;}
+  main {grid-template-columns:minmax(0,1.3fr) minmax(320px,.9fr);}
+}
+@media(max-width:900px){
+  header .search {order:3;}
+  main {grid-template-columns:minmax(0,1fr);}
+  .now {overflow-y:visible;scrollbar-gutter:auto;}
+  .now .titlebar {position:static;}
+  .now .body {grid-template-columns:108px minmax(0,1fr);min-height:0;}
+  .now .art {width:108px;height:108px;}
+  .card .list {max-height:49vh;min-height:230px;}
+  .playlistItems,.queueItems {max-height:155px;}
+  footer {z-index:20;}
+}
+@media(max-width:580px){
+  header .brand {width:100%;}
+  header .left,header .right {width:100%;flex-wrap:wrap;}
+  header .pill {flex:1;max-width:100%;}
+  header .pill select {max-width:100%!important;}
+  header .right .seg {flex:1;justify-content:space-around;}
+  header .right .seg button {flex:1;}
+  header .search {min-width:0;width:100%;}
+  .card .titlebar {padding:12px;gap:8px;}
+  .sectionTitle {font-size:15px;}
+  #btnQuickRandom {width:100%;justify-content:center;}
+  .list .row {grid-template-columns:minmax(0,1fr) 47px;gap:8px;}
+  .list .row .trackActions {grid-column:1/-1;justify-content:flex-end;}
+  .list .row .trackActions .miniBtn {min-height:34px;padding:7px 9px;}
+  .now .body {padding:14px;grid-template-columns:80px minmax(0,1fr);}
+  .now .art {width:80px;height:80px;}
+  .artEmpty {font-size:36px;}
+  .now .npTitle {font-size:16px;}
+  .now .playlistPanel,.now .queuePanel {padding:14px 12px;}
+  .shortcutGrid {grid-template-columns:85px 1fr;}
+  footer {padding:10px;}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after {animation-duration:.01ms!important;transition-duration:.01ms!important;}
+}
