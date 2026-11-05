@@ -1164,6 +1164,7 @@
 
       const dur = (t.status?.durationSec != null) ? fmtMMSS(t.status.durationSec) : "—";
       const sub = displaySub(t);
+      const saved = Boolean(selectedPlaylist()?.items.includes(t.relPath));
       row.innerHTML = `
         <div class="trackMain">
           <div class="name" title="${escapeHtml(t.name)}">${t.status && t.status.ok === false ? '<span title="Bài hát có thể bị lỗi">⚠ </span>' : ""}${escapeHtml(displayTitle(t))}</div>
@@ -1171,7 +1172,7 @@
         </div>
         <div class="dur">${dur}</div>
         <div class="trackActions">
-          <button type="button" class="miniBtn" data-track-action="favorite" title="Lưu vào danh sách yêu thích" aria-label="Lưu ${escapeHtml(displayTitle(t))}">♥ Lưu</button>
+          <button type="button" class="miniBtn" data-track-action="favorite" title="${saved ? "Đã có trong danh sách này" : "Lưu vào danh sách đang chọn"}" aria-label="${saved ? "Đã lưu" : "Lưu"} ${escapeHtml(displayTitle(t))}">${saved ? "♥ Đã lưu" : "♡ Lưu"}</button>
           <button type="button" class="miniBtn" data-track-action="next" title="Phát ngay sau bài hiện tại" aria-label="Phát tiếp ${escapeHtml(displayTitle(t))}">⏭ Tiếp</button>
           <button type="button" class="miniBtn" data-track-action="queue" title="Đưa vào cuối danh sách chờ" aria-label="Xếp ${escapeHtml(displayTitle(t))} vào danh sách chờ">＋ Xếp</button>
         </div>
@@ -1323,9 +1324,13 @@
   function addTrackToQuickPlaylist(idx){
     const t = state.tracks[idx], pl = selectedPlaylist();
     if (!t || !pl) return;
-    if (pl.items.includes(t.relPath)) return;
+    if (pl.items.includes(t.relPath)){
+      showToast("Bài hát đã có trong danh sách này.");
+      return;
+    }
     pl.items.push(t.relPath);
     renderSubPlaylist();
+    renderList();
     persistPlaylists();
     log("info", `Thêm vào '${pl.name}': ${t.relPath}`);
   }
@@ -2181,6 +2186,7 @@
   playlistSelect.addEventListener("change", () => {
     state.activePlaylistId = playlistSelect.value;
     renderSubPlaylist();
+    renderList();
     persistPlaylists();
   });
 
@@ -2198,6 +2204,7 @@
     state.playlists.push({id, name:clean, items:[]});
     state.activePlaylistId = id;
     renderSubPlaylist();
+    renderList();
     persistPlaylists();
   });
 
@@ -2220,6 +2227,7 @@
     state.playlists = state.playlists.filter(p => p.id !== pl.id);
     state.activePlaylistId = state.playlists[0].id;
     renderSubPlaylist();
+    renderList();
     persistPlaylists();
   });
 
@@ -2251,6 +2259,7 @@
     else if (action === "down") moveItem(pl.items,pos,1);
     else return;
     renderSubPlaylist();
+    renderList();
     persistPlaylists();
   });
 
