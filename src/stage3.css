@@ -358,3 +358,8 @@ dialog {width:min(680px,94vw);}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after {animation-duration:.01ms!important;transition-duration:.01ms!important;}
 }
+
+/* Ensure the reconnect action appears only when a saved folder needs permission. */
+.btn.reconnectBtn[hidden] { display:none!important; }
+.btn.reconnectBtn:not([hidden]) { border-color:rgba(255,174,104,.65);color:#ffd0a8;white-space:nowrap; }
+@media(max-width:580px){ .btn.reconnectBtn { flex:1;justify-content:center; } }
