@@ -269,6 +269,7 @@
                 </div>
                 <div class="left">
                     <button class="btn primary" id="btnConnect" title="Chọn thư mục chứa bài hát">📁 Chọn thư mục nhạc</button>
+                    <input id="localDirectoryPicker" type="file" webkitdirectory multiple hidden aria-label="Chọn thư mục chứa nhạc">
                     <button class="btn reconnectBtn" id="btnReconnect" hidden title="Cấp lại quyền truy cập thư mục đã lưu mà không xóa danh sách nhạc">🔓 Cấp lại quyền</button>
                     <label class="pill">
                         <span class="muted tiny">Thư viện</span>
@@ -434,6 +435,7 @@
 
   // UI
   const btnConnect = $("#btnConnect");
+  const localDirectoryPicker = $("#localDirectoryPicker");
   const btnReconnect = $("#btnReconnect");
   const libSelect = $("#libSelect");
   const q = $("#q");
@@ -536,7 +538,9 @@
     playRequestId: 0,
     playbackErrorTimer: null,
     failedTrackKeys: new Set(),
-    scanPromise: null
+    scanPromise: null,
+    // File objects returned by <input webkitdirectory> are valid for this tab only.
+    localSessions: new Map()
   };
 
   // ====== Small utilities
@@ -726,7 +730,8 @@
   }
 
   // ====== File System Access API (persistent)
-  const hasFSA = typeof window.showDirectoryPicker === "function"; // :contentReference[oaicite:8]{index=8}
+  const hasFSA = typeof window.showDirectoryPicker === "function";
+  const isDirectFile = window.location?.protocol === "file:";
 
   const LAST_FOLDER_KEY = "musicbox:lastPersistentFolder";
 
@@ -1958,6 +1963,22 @@
     scanBadge.textContent = "Sẵn sàng";
     updateModeBadges();
 
+    const localSession = state.localSessions.get(lib.id);
+    if (localSession){
+      btnReconnect.hidden = true;
+      await loadPersistentLibrary(lib, {
+        prefetched:localSession.audioEntries, snapshot:localSession.snapshot, epoch
+      });
+      return;
+    }
+    if (lib.kind === "local" || isDirectFile){
+      // Files chosen with webkitdirectory cannot be reopened without a user click.
+      renderList();
+      listMeta.textContent = "Hãy chọn lại thư mục “" + lib.name + "” để nghe nhạc.";
+      btnReconnect.hidden = true;
+      scanBadge.textContent = "Chờ chọn thư mục";
+      return;
+    }
     const ok = lib.handle ? await verifyPermission(lib.handle, false, false) : false;
     if (epoch !== state.activeLibraryEpoch) return;
     if (ok){
@@ -1978,6 +1999,13 @@
 
   // ====== Persistent connect
   async function connectPersistentFolder(){
+    // Directly opened HTML has no reliable persistent directory picker.
+    // Prefer a normal <input webkitdirectory> from the user's click.
+    if (isDirectFile || !hasFSA || !window.isSecureContext){
+      localDirectoryPicker.value = "";
+      localDirectoryPicker.click();
+      return;
+    }
     if (!hasFSA){
       log("error", "Trình duyệt/ môi trường không hỗ trợ showDirectoryPicker().", {});
       alert("Trình duyệt chưa hỗ trợ mở thư mục nhạc. Vui lòng dùng Chrome hoặc Edge bản mới nhất.");
@@ -2087,7 +2115,7 @@
   async function loadPersistentLibrary(lib, {auto=false, prefetched=null, snapshot=null, epoch=state.activeLibraryEpoch}={}){
     if (epoch !== state.activeLibraryEpoch) return;
     // ensure permission
-    const ok = lib.handle ? await verifyPermission(lib.handle, false, auto ? false : true) : false;
+    const ok = prefetched ? true : (lib.handle ? await verifyPermission(lib.handle, false, auto ? false : true) : false);
     if (epoch !== state.activeLibraryEpoch) return;
     if (!ok){
       scanBadge.textContent = "Tự reconnect thất bại";
@@ -2137,7 +2165,7 @@
       const mimeGuess = MIME_BY_EXT[e] || (f.type||"");
       const hint = mimeGuess ? canPlayHint(mimeGuess) : "";
       state.tracks.push({
-        sourceKind: "persistent",
+        sourceKind: lib.kind === "local" ? "local" : "persistent",
         relPath: it.relPath,
         name: f.name,
         ext: e,
@@ -2192,6 +2220,16 @@
 
   // ====== UI events
   btnConnect.addEventListener("click", connectPersistentFolder);
+  localDirectoryPicker.addEventListener("change", async () => {
+    const files = Array.from(localDirectoryPicker.files || []);
+    if (!files.length) return;
+    try { await connectLocalFiles(files); }
+    catch (err){
+      log("error", "Không thể đọc thư mục nhạc: " + (err?.message || String(err)));
+      showToast("Không mở được thư mục nhạc. Hãy thử lại.",true);
+    }
+    finally { localDirectoryPicker.value = ""; }
+  });
 
   btnReconnect.addEventListener("click", async () => {
     const lib = state.libs.find(x => x.id === state.currentLibId);
@@ -2568,20 +2606,16 @@
     updateModeBadges();
 
     // compatibility banner
-    if (!hasFSA){
+    // Local file mode is supported through a standard folder input.
+    // No scary security warning is needed; the only limitation is that users
+    // must choose the folder again after reopening the HTML file.
+    if (!isDirectFile && (!hasFSA || !window.isSecureContext)){
       compatBanner.style.display = "block";
-      compatBanner.innerHTML = `
-        <b>Không thể mở thư mục nhạc.</b> Hãy sử dụng Chrome hoặc Edge bản mới nhất.
-      `;
-    } else if (!window.isSecureContext){
-      compatBanner.style.display = "block";
-      compatBanner.innerHTML = `
-        <b>Không thể chọn thư mục nhạc.</b> Hãy mở ứng dụng qua localhost hoặc HTTPS thay vì mở trực tiếp file HTML.
-      `;
+      compatBanner.textContent = "Bạn vẫn có thể chọn thư mục nhạc bằng nút Chọn thư mục nhạc.";
     }
 
     await loadLibs();
-    state.libs = state.libs.filter(x => x.kind === "persistent");
+    state.libs = state.libs.filter(x => x.kind === "persistent" || x.kind === "local");
     const last = await getSetting("lastLibId", "");
     const remembered = readLastPersistentFolderInfo();
     if (last && state.libs.some(x=>x.id===last)) state.currentLibId = last;
