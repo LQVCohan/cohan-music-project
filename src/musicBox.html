@@ -1967,12 +1967,12 @@
       // Permission may expire after Chrome closes. A click is needed to
       // request it again; don't treat this normal situation as a fatal error.
       scanBadge.textContent = "Cần cấp lại quyền";
+      renderList();
       listMeta.textContent = "Chrome cần quyền đọc thư mục “" + lib.name + "”.";
       btnReconnect.hidden = !lib.handle;
       log("warn", "Quyền thư mục đã lưu chưa được cấp. Nhấn “Cấp lại quyền” để thử khôi phục.", {
         libId:lib.id, folder:lib.name
       });
-      renderList();
     }
   }
 
