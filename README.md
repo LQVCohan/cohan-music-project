@@ -2,14 +2,18 @@
 
 Ứng dụng nghe nhạc trên máy tính, dùng trực tiếp các bài hát trong thư mục bạn chọn. Không cần đăng nhập và không tải nhạc lên máy chủ.
 
-## Mở ứng dụng trên Windows
+## Mở ứng dụng trên Windows — không cần chạy server
 
-1. Mở Terminal / PowerShell trong thư mục dự án.
-2. Chạy lệnh: `py -m http.server 8000` (hoặc `python -m http.server 8000`).
-3. Truy cập `http://localhost:8000/src/musicBox.html` bằng **Chrome** hoặc **Edge**.
-4. Nhấn **📁 Chọn thư mục nhạc**, chọn thư mục trên máy và cho phép truy cập.
+1. Mở thư mục đã tải từ GitHub, sau đó vào thư mục **`src`**.
+2. Nhấn đúp vào **`musicBox.html`** bằng **Google Chrome** hoặc **Microsoft Edge**. Trang sẽ có địa chỉ bắt đầu bằng `file:///`.
+3. Nhấn **📁 Chọn thư mục nhạc**, chọn thư mục chứa file MP3, FLAC, M4A... Nếu Chrome hỏi có cho phép xem các file đã chọn hay không, nhấn **Cho phép**.
+4. Bấm vào tên bài hát để nghe. **Không cần Python hay localhost.**
 
-Các file giao diện chính: `src/musicBox.html` và `src/stage3.css`.
+**Giữ cả hai file `musicBox.html` và `stage3.css` trong cùng thư mục `src`** để giao diện hiển thị đúng.
+
+Ứng dụng dùng lựa chọn thư mục thông thường của trình duyệt (`webkitdirectory`) khi mở trực tiếp HTML. Đây là thao tác đọc file trên máy, **không tải âm thanh lên mạng**. Khi tắt rồi mở lại trang, bạn **cần chọn lại thư mục nhạc** vì trình duyệt không cấp quyền truy cập file liên tục. Danh sách yêu thích và hàng đợi được lưu trong bộ nhớ trình duyệt theo đường dẫn file HTML; khi chọn lại đúng thư mục, ứng dụng cố gắng khôi phục chúng.
+
+**Lưu ý về dữ liệu cũ:** Nếu trước đó bạn chạy trên `http://localhost:8000`, Chrome coi trang `file:///` là một nguồn dữ liệu khác. Playlist ở localhost **không tự xuất hiện** trong bản mở trực tiếp HTML. Đừng xóa dữ liệu localhost nếu bạn muốn bảo toàn playlist cũ. Việc di chuyển/đổi tên file HTML cũng có thể khiến dữ liệu lưu bởi trình duyệt không còn liên kết được.
 
 ## Những thao tác thường dùng
 
@@ -60,15 +64,10 @@ Các nút nhập/xuất JSON được bỏ khỏi giao diện và mã ứng dụ
 
 Các kiểm tra cú pháp/mô phỏng trong quá trình phát triển không thay thế cho kiểm thử âm thanh thực tế trên máy của bạn.
 
-## Nếu mở lại ứng dụng mà thư viện báo mất quyền
+## Nếu chọn thư mục bị lỗi
 
-Sau khi đóng Chrome, khởi động lại máy hoặc Chrome thay đổi quyền truy cập tệp, quyền đọc thư mục đã lưu có thể không còn được cấp. **Không cần xóa thư viện hoặc xóa dữ liệu trình duyệt.**
+Với trang mở bằng `file:///`, nút **Chọn thư mục nhạc** dùng cửa sổ chọn thư mục thông thường của Chrome/Edge để tránh lỗi quyền truy cập thư mục nâng cao. Nếu Chrome vẫn không cho chọn, hãy thử một thư mục nhỏ như `D:\\TestMusic` có một bài MP3. Không chọn thư mục hệ thống hay thư mục gốc của ổ đĩa.
 
-1. Giữ nguyên địa chỉ **`http://localhost:8000/src/musicBox.html`** và mở cùng hồ sơ Chrome đã dùng lần trước.
-2. Khi thấy **🔓 Cấp lại quyền**, nhấn nút này rồi chọn **Cho phép** trong thông báo của Chrome. Ứng dụng sẽ mở lại thư viện và giữ danh sách yêu thích đã lưu.
-3. Nếu Chrome không cấp quyền, nhấn **📁 Chọn thư mục nhạc**, chọn thư mục cũ. Nếu có cảnh báo, mở **❔ Hướng dẫn → Quản lý thư viện và xử lý sự cố → Xem nhật ký lỗi** để xem mã lỗi của cửa sổ chọn thư mục.
-4. Nếu thư mục cũ không mở được, thử một thư mục thử nghiệm chứa một bài nhạc. Không chọn thư mục hệ thống, thư mục gốc của ổ C, hoặc thư mục mà tài khoản Windows không có quyền đọc.
+Khi mở lại ứng dụng, cần **chọn lại thư mục một lần**; đây là giới hạn bảo mật của trình duyệt và không phải lỗi mất nhạc. Không xóa dữ liệu trang web hoặc playlist đã lưu.
 
-Nhật ký phân biệt **`AbortError`** (cửa sổ bị đóng, quyền không được cấp hoặc Chrome không chấp nhận thư mục) và **`SecurityError`** (chặn bởi yêu cầu bảo mật hay thao tác người dùng). Không thể kết luận nguyên nhân cụ thể chỉ từ tên `AbortError` nếu trình duyệt không cung cấp thêm chi tiết.
-
-**Không bấm Xóa dữ liệu trang web/Clear site data** để thử sửa lỗi nếu muốn giữ playlist/hàng đợi: những thông tin này được lưu trong bộ nhớ của Chrome cho địa chỉ website đang dùng.
+Nếu mở ứng dụng bằng localhost/HTTPS, nút **Cấp lại quyền** vẫn được hỗ trợ cho thư viện có handle đã lưu.
