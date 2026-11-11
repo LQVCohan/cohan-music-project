@@ -2068,18 +2068,6 @@
       localDirectoryPicker.click();
       return;
     }
-    if (!hasFSA){
-      log("error", "Trình duyệt/ môi trường không hỗ trợ showDirectoryPicker().", {});
-      alert("Trình duyệt chưa hỗ trợ mở thư mục nhạc. Vui lòng dùng Chrome hoặc Edge bản mới nhất.");
-      return;
-    }
-
-    // API requires secure context (HTTPS). :contentReference[oaicite:14]{index=14}
-    if (!window.isSecureContext){
-      alert("Hãy mở ứng dụng bằng localhost hoặc trang HTTPS để chọn thư mục nhạc.");
-      log("warn", "Không phải secure context → showDirectoryPicker có thể bị chặn.");
-    }
-
     let dir;
     try{
       dir = await window.showDirectoryPicker();
