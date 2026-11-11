@@ -59,3 +59,16 @@ Các nút nhập/xuất JSON được bỏ khỏi giao diện và mã ứng dụ
 7. Kiểm tra giao diện trên điện thoại hoặc cửa sổ trình duyệt hẹp.
 
 Các kiểm tra cú pháp/mô phỏng trong quá trình phát triển không thay thế cho kiểm thử âm thanh thực tế trên máy của bạn.
+
+## Nếu mở lại ứng dụng mà thư viện báo mất quyền
+
+Sau khi đóng Chrome, khởi động lại máy hoặc Chrome thay đổi quyền truy cập tệp, quyền đọc thư mục đã lưu có thể không còn được cấp. **Không cần xóa thư viện hoặc xóa dữ liệu trình duyệt.**
+
+1. Giữ nguyên địa chỉ **`http://localhost:8000/src/musicBox.html`** và mở cùng hồ sơ Chrome đã dùng lần trước.
+2. Khi thấy **🔓 Cấp lại quyền**, nhấn nút này rồi chọn **Cho phép** trong thông báo của Chrome. Ứng dụng sẽ mở lại thư viện và giữ danh sách yêu thích đã lưu.
+3. Nếu Chrome không cấp quyền, nhấn **📁 Chọn thư mục nhạc**, chọn thư mục cũ. Nếu có cảnh báo, mở **❔ Hướng dẫn → Quản lý thư viện và xử lý sự cố → Xem nhật ký lỗi** để xem mã lỗi của cửa sổ chọn thư mục.
+4. Nếu thư mục cũ không mở được, thử một thư mục thử nghiệm chứa một bài nhạc. Không chọn thư mục hệ thống, thư mục gốc của ổ C, hoặc thư mục mà tài khoản Windows không có quyền đọc.
+
+Nhật ký phân biệt **`AbortError`** (cửa sổ bị đóng, quyền không được cấp hoặc Chrome không chấp nhận thư mục) và **`SecurityError`** (chặn bởi yêu cầu bảo mật hay thao tác người dùng). Không thể kết luận nguyên nhân cụ thể chỉ từ tên `AbortError` nếu trình duyệt không cung cấp thêm chi tiết.
+
+**Không bấm Xóa dữ liệu trang web/Clear site data** để thử sửa lỗi nếu muốn giữ playlist/hàng đợi: những thông tin này được lưu trong bộ nhớ của Chrome cho địa chỉ website đang dùng.
