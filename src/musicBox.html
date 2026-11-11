@@ -1997,6 +1997,68 @@
     }
   }
 
+  // Folder selected using <input webkitdirectory> (works when opened via file://).
+  // File objects stay in memory only; IndexedDB stores metadata and playlists,
+  // never synthetic handles or audio files.
+  async function connectLocalFiles(files){
+    const selected = files.filter(file => isAudioCandidateByNameType(file.name, file.type));
+    if (!selected.length){
+      showToast("Thư mục này chưa có bài nhạc được hỗ trợ. Hãy chọn thư mục khác.",true);
+      return;
+    }
+    const firstPath = String(selected[0].webkitRelativePath || selected[0].name).replace(/\\/g,"/");
+    const rootName = firstPath.includes("/") ? firstPath.split("/")[0] : "Thư mục nhạc";
+    const audioEntries = [];
+    const snapshotItems = [];
+    for (const file of selected){
+      const fullPath = String(file.webkitRelativePath || file.name).replace(/\\/g,"/");
+      const relPath = fullPath.startsWith(rootName + "/") ? fullPath.slice(rootName.length+1) : fullPath;
+      // A normal file picker grants read access to its selected File objects.
+      // The wrapper is kept in memory and is never stored in IndexedDB.
+      const fileHandle = {
+        kind:"file",
+        name:file.name,
+        queryPermission: async () => "granted",
+        getFile: async () => file
+      };
+      audioEntries.push({relPath, fileHandle, file});
+      snapshotItems.push({p:relPath,s:file.size,m:file.lastModified,t:file.type||""});
+    }
+    const snapshot = buildSnapshot(snapshotItems);
+    const saved = await idbGetAll("libs");
+    // Match same-name folder for stable playlist identity across selections.
+    // Browsers intentionally do not expose full local paths to this picker.
+    const matches = saved.filter(lib => lib.name === rootName &&
+      (lib.kind === "local" || lib.kind === "persistent"));
+    const existing = matches.find(lib => lib.kind === "local") ||
+      (matches.length === 1 ? matches[0] : null);
+    const id = existing?.id || "local::" + rootName;
+    const now = Date.now();
+    const lib = {
+      id, kind:existing?.kind || "local", name:rootName,
+      createdAt:existing?.createdAt || now, updatedAt:now,
+      snapshotHash:existing?.snapshotHash || "",
+      trackCount:audioEntries.length,root:rootName,
+      handle:existing?.handle || null, missing:false
+    };
+    await idbPut("libs",lib);
+    state.localSessions.set(id,{audioEntries,snapshot});
+    const epoch = beginLibraryChange();
+    state.currentLibId = id;
+    await setSetting("lastLibId",id);
+    if (epoch !== state.activeLibraryEpoch) return;
+    saveLastPersistentFolderInfo({label:rootName,libId:id});
+    await loadLibs();
+    if (epoch !== state.activeLibraryEpoch) return;
+    state.currentLibId = id;
+    libSelect.value = id;
+    btnReconnect.hidden = true;
+    await loadPersistentLibrary(lib,{prefetched:audioEntries,snapshot,epoch});
+    if (epoch === state.activeLibraryEpoch){
+      showToast("Đã chọn " + audioEntries.length + " bài hát. Bạn có thể nghe nhạc ngay.");
+    }
+  }
+
   // ====== Persistent connect
   async function connectPersistentFolder(){
     // Directly opened HTML has no reliable persistent directory picker.
