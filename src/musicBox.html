@@ -269,6 +269,7 @@
                 </div>
                 <div class="left">
                     <button class="btn primary" id="btnConnect" title="Chọn thư mục chứa bài hát">📁 Chọn thư mục nhạc</button>
+                    <button class="btn reconnectBtn" id="btnReconnect" hidden title="Cấp lại quyền truy cập thư mục đã lưu mà không xóa danh sách nhạc">🔓 Cấp lại quyền</button>
                     <label class="pill">
                         <span class="muted tiny">Thư viện</span>
                         <select id="libSelect" aria-label="Thư viện nhạc đang sử dụng"><option value="">Chưa chọn</option></select>
@@ -433,6 +434,7 @@
 
   // UI
   const btnConnect = $("#btnConnect");
+  const btnReconnect = $("#btnReconnect");
   const libSelect = $("#libSelect");
   const q = $("#q");
   const qCount = $("#qCount");
@@ -785,6 +787,11 @@
       const r = await handle.requestPermission(opts);
       return r === "granted";
     } catch (e){
+      if (request) {
+        log("warn", "Không thể xin quyền truy cập thư mục: " + (e?.name || "Lỗi"), {
+          name:e?.name || "", message:e?.message || String(e)
+        });
+      }
       return false;
     }
   }
@@ -1626,6 +1633,7 @@
     state.shuffleReady = false;
     state.selectedIndex = -1;
     state.currentLibId = "";
+    btnReconnect.hidden = true;
     resetCollections();
     clearArt();
     updateNowPlayingUI(null);
@@ -1953,11 +1961,17 @@
     const ok = lib.handle ? await verifyPermission(lib.handle, false, false) : false;
     if (epoch !== state.activeLibraryEpoch) return;
     if (ok){
+      btnReconnect.hidden = true;
       await loadPersistentLibrary(lib, {auto:true, epoch});
     } else {
-      scanBadge.textContent = "Tự reconnect thất bại";
-      alert("Không thể mở lại thư mục nhạc. Vui lòng nhấn Chọn thư mục nhạc để cấp quyền truy cập.");
-      log("error", "Auto reconnect thất bại: thiếu quyền đọc folder persistent.");
+      // Permission may expire after Chrome closes. A click is needed to
+      // request it again; don't treat this normal situation as a fatal error.
+      scanBadge.textContent = "Cần cấp lại quyền";
+      listMeta.textContent = "Chrome cần quyền đọc thư mục “" + lib.name + "”.";
+      btnReconnect.hidden = !lib.handle;
+      log("warn", "Quyền thư mục đã lưu chưa được cấp. Nhấn “Cấp lại quyền” để thử khôi phục.", {
+        libId:lib.id, folder:lib.name
+      });
       renderList();
     }
   }
@@ -1980,7 +1994,18 @@
     try{
       dir = await window.showDirectoryPicker();
     } catch (e){
-      log("warn", "Hủy chọn folder (persistent).");
+      const name = e?.name || "UnknownError";
+      const message = e?.message || String(e);
+      // AbortError also means a blocked/sensitive folder, not only Cancel.
+      // Never erase the actual browser error in the diagnostic log.
+      if (name === "AbortError"){
+        log("warn", "Không hoàn tất chọn thư mục (" + name + "): " + message, {name,message});
+        showToast("Không chọn được thư mục. Chrome có thể đã chặn thư mục này; hãy thử chọn một thư mục nhạc khác.",true);
+      } else {
+        log("error", "Lỗi khi mở cửa sổ chọn thư mục (" + name + "): " + message, {name,message});
+        showToast("Không mở được thư mục: " + message,true);
+      }
+      console.warn("Cohan Music: showDirectoryPicker failed",e);
       return;
     }
 
@@ -2167,6 +2192,33 @@
 
   // ====== UI events
   btnConnect.addEventListener("click", connectPersistentFolder);
+
+  btnReconnect.addEventListener("click", async () => {
+    const lib = state.libs.find(x => x.id === state.currentLibId);
+    if (!lib?.handle){
+      showToast("Không tìm thấy thư mục đã lưu. Hãy nhấn “Chọn thư mục nhạc”.",true);
+      return;
+    }
+    // Request is invoked by a real click so Chrome may display its permission
+    // prompt. No IndexedDB or localStorage reset is required.
+    btnReconnect.disabled = true;
+    try{
+      const granted = await verifyPermission(lib.handle, false, true);
+      if (!granted){
+        log("warn", "Người dùng chưa cấp được quyền đọc thư mục đã lưu.", {folder:lib.name});
+        showToast("Chrome chưa cấp quyền. Hãy cho phép truy cập hoặc thử “Chọn thư mục nhạc”.",true);
+        return;
+      }
+      btnReconnect.hidden = true;
+      showToast("Đã cấp quyền. Đang mở lại thư viện nhạc...");
+      await setCurrentLib(lib.id);
+    } catch (e){
+      log("error", "Không thể kết nối lại thư viện: " + (e?.message || String(e)),{name:e?.name || ""});
+      showToast("Không thể kết nối lại. Hãy thử “Chọn thư mục nhạc”.",true);
+    } finally{
+      btnReconnect.disabled = false;
+    }
+  });
 
   libSelect.addEventListener("change", async () => setCurrentLib(libSelect.value));
 
